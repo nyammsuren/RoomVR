@@ -62,7 +62,7 @@ window.goRoom = (n) => {
     }
 
     if (n === 2) {
-        camera.position.set(0, 1.6, 4); // 🔥 ойр байрлал
+        camera.position.set(2, 1.6, 4); // 🔥 ойр байрлал
     }
 };
 // ==========================
