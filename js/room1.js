@@ -14,6 +14,7 @@ export function createRoom1(scene, camera) {
         new THREE.MeshStandardMaterial({ color: 0x101826 })
     );
     floor.rotation.x = -Math.PI/2;
+    floor.userData = { teleport: true };
     room.add(floor);
 
     // ======================
