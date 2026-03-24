@@ -33,7 +33,7 @@ export function createRoom1(scene, camera) {
         new THREE.BoxGeometry(1,2,0.2),
         new THREE.MeshStandardMaterial({ color: 0x00ffcc })
     );
-    door.position.set(4,1,0);
+    door.position.set(2,1,-2);
     door.userData = { kind: "door" };
 
     room.add(door);
@@ -86,4 +86,4 @@ export function createRoom1(scene, camera) {
     return room;
 }
 floor.userData = { teleport: true };
-door.position.set(2, 1, -2);
+
