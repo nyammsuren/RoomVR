@@ -37,3 +37,4 @@ export function createRoom2(scene) {
 
     return room;
 }
+floor.userData = { teleport: true };
