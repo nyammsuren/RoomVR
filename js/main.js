@@ -51,14 +51,20 @@ room2.visible = false;
 // ======================
 // ROOM SWITCH
 // ======================
+
 window.goRoom = (n) => {
+
     room1.visible = (n === 1);
     room2.visible = (n === 2);
 
-    if (n === 1) camera.position.set(0, 1.6, 4);
-    if (n === 2) camera.position.set(20, 1.6, 4);
-};
+    if (n === 1) {
+        camera.position.set(0, 1.6, 4);
+    }
 
+    if (n === 2) {
+        camera.position.set(6, 1.6, 0); // 🔥 ойр байрлал
+    }
+};
 // ==========================
 // VR CONTROLLER
 // ==========================
