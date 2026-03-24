@@ -152,3 +152,40 @@ window.addEventListener("resize", () => {
 renderer.setAnimationLoop(() => {
     renderer.render(scene, camera);
 });
+controller.addEventListener("selectstart", () => {
+
+    tempMatrix.identity().extractRotation(controller.matrixWorld);
+
+    raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+    raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+
+    const hits = raycaster.intersectObjects(scene.children, true);
+
+    if (hits.length > 0) {
+
+        const obj = hits[0].object;
+
+        // 🚪 ROOM SWITCH
+        if (obj.userData?.kind === "door") {
+            window.goRoom(2);
+            return;
+        }
+
+        if (obj.userData?.kind === "backDoor") {
+            window.goRoom(1);
+            return;
+        }
+
+        // 🟢 TELEPORT (хамгийн чухал)
+        if (obj.userData?.teleport) {
+
+            const point = hits[0].point;
+
+            camera.position.set(
+                point.x,
+                1.6,
+                point.z
+            );
+        }
+    }
+});
