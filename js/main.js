@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
-import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 
 import { createRoom1 } from "./room1.js";
 import { createRoom2 } from "./room2.js";
@@ -32,29 +31,6 @@ renderer.xr.enabled = true;
 document.body.appendChild(renderer.domElement);
 document.body.appendChild(VRButton.createButton(renderer));
 
-// ======================
-// 🎮 POINTER LOCK (PC)
-// ======================
-const controls = new PointerLockControls(camera, document.body);
-
-document.addEventListener("click", () => {
-    if (!renderer.xr.isPresenting) {
-        controls.lock();
-    }
-});
-
-// ======================
-// KEYBOARD
-// ======================
-const keys = {};
-
-window.addEventListener("keydown", (e) => {
-    keys[e.key.toLowerCase()] = true;
-});
-
-window.addEventListener("keyup", (e) => {
-    keys[e.key.toLowerCase()] = false;
-});
 
 // ======================
 // LIGHT
