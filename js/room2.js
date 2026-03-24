@@ -13,6 +13,7 @@ export function createRoom2(scene) {
         new THREE.MeshStandardMaterial({ color: 0x222222 })
     );
     floor.rotation.x = -Math.PI/2;
+    floor.userData = { teleport: true };
     room.add(floor);
 
     // LAB PCs
@@ -37,4 +38,4 @@ export function createRoom2(scene) {
 
     return room;
 }
-floor.userData = { teleport: true };
+
