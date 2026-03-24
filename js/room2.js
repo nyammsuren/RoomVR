@@ -5,7 +5,7 @@ export function createRoom2(scene) {
     const room = new THREE.Group();
     scene.add(room);
 
-    room.position.set(20,0,0);
+    room.position.set(4,0,0);
 
     // FLOOR
     const floor = new THREE.Mesh(
