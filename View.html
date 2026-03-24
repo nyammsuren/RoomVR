@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="mn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>VR GLB Viewer</title>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #0b1220;
+      font-family: system-ui, Arial, sans-serif;
+    }
+
+    #hud {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 20;
+      color: white;
+      background: rgba(0,0,0,.5);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      padding: 12px 14px;
+      max-width: 360px;
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    #hud b {
+      font-size: 15px;
+    }
+
+    #status {
+      margin-top: 8px;
+      color: #8ef0a7;
+    }
+
+    #error {
+      margin-top: 8px;
+      color: #ff8c8c;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div><b>pc_network.glb Viewer</b></div>
+    <div>Mouse зүүн товч: эргүүлэх</div>
+    <div>Mouse баруун товч: move</div>
+    <div>Mouse wheel: zoom</div>
+    <div>VR: <b>Enter VR</b> дарж бүтнээр нь үзнэ</div>
+    <div id="status">Model ачаалж байна...</div>
+    <div id="error"></div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { VRButton } from "three/addons/webxr/VRButton.js";
+
+    const statusEl = document.getElementById("status");
+    const errorEl = document.getElementById("error");
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b1220);
+
+    const camera = new THREE.PerspectiveCamera(
+      65,
+      window.innerWidth / window.innerHeight,
+      0.01,
+      100
+    );
+    camera.position.set(0, 1.4, 3.2);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.xr.enabled = true;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
+    document.body.appendChild(VRButton.createButton(renderer));
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.8, 0);
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x223344, 1.2);
+    scene.add(hemi);
+
+    const dir = new THREE.DirectionalLight(0xffffff, 1.4);
+    dir.position.set(5, 8, 6);
+    scene.add(dir);
+
+    const dir2 = new THREE.DirectionalLight(0xffffff, 0.6);
+    dir2.position.set(-4, 3, -5);
+    scene.add(dir2);
+
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20),
+      new THREE.MeshStandardMaterial({
+        color: 0x101826,
+        roughness: 0.95,
+        metalness: 0.05
+      })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = 0;
+    scene.add(floor);
+
+    const grid = new THREE.GridHelper(20, 20, 0x2f5f9f, 0x1a3152);
+    grid.position.y = 0.001;
+    scene.add(grid);
+
+    let modelRoot = null;
+
+    function frameObject(object3D) {
+      const box = new THREE.Box3().setFromObject(object3D);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+
+      box.getSize(size);
+      box.getCenter(center);
+
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const fitHeightDistance = maxDim / (2 * Math.tan((Math.PI * camera.fov) / 360));
+      const fitWidthDistance = fitHeightDistance / camera.aspect;
+      const distance = 1.35 * Math.max(fitHeightDistance, fitWidthDistance);
+
+      const direction = new THREE.Vector3(1, 0.6, 1).normalize();
+
+      camera.position.copy(center).add(direction.multiplyScalar(distance));
+      camera.near = Math.max(0.01, distance / 100);
+      camera.far = distance * 100;
+      camera.updateProjectionMatrix();
+
+      controls.target.copy(center);
+      controls.update();
+    }
+
+    function placeModelOnFloor(object3D) {
+      const box = new THREE.Box3().setFromObject(object3D);
+      const minY = box.min.y;
+      object3D.position.y -= minY;
+    }
+
+    const loader = new GLTFLoader();
+    loader.load(
+      "./pc_network.glb",
+      (gltf) => {
+        modelRoot = gltf.scene;
+
+        modelRoot.traverse((obj) => {
+          if (obj.isMesh) {
+            obj.castShadow = false;
+            obj.receiveShadow = false;
+            if (obj.material) {
+              obj.material.side = THREE.FrontSide;
+            }
+          }
+        });
+
+        scene.add(modelRoot);
+
+        placeModelOnFloor(modelRoot);
+        frameObject(modelRoot);
+
+        const box = new THREE.Box3().setFromObject(modelRoot);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        statusEl.textContent =
+          `Model ачааллаа. Хэмжээ: ${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)} м`;
+      },
+      undefined,
+      (err) => {
+        console.error(err);
+        statusEl.textContent = "Model ачаалж чадсангүй";
+        errorEl.textContent =
+          "pc_network.glb файл олдсонгүй эсвэл ачаалж чадсангүй.\n" +
+          "HTML ба GLB нэг хавтсанд байгаа эсэхийг шалга.";
+      }
+    );
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    renderer.setAnimationLoop(() => {
+      controls.update();
+      renderer.render(scene, camera);
+    });
+  </script>
+</body>
+</html>
