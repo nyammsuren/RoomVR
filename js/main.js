@@ -3,10 +3,40 @@ import { VRButton } from "three/addons/webxr/VRButton.js";
 
 import { createRoom1 } from "./room1.js";
 import { createRoom2 } from "./room2.js";
-
+import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 // ======================
 // SCENE
 // ======================
+const controls = new PointerLockControls(camera, document.body);
+
+document.addEventListener("click", () => {
+    controls.lock(); // mouse-г барина
+});
+const keys = {};
+
+window.addEventListener("keydown", (e) => {
+    keys[e.key.toLowerCase()] = true;
+});
+
+window.addEventListener("keyup", (e) => {
+    keys[e.key.toLowerCase()] = false;
+});
+renderer.setAnimationLoop(() => {
+
+    const speed = 0.1;
+
+    if (!renderer.xr.isPresenting) { // VR биш үед
+
+        if (keys["w"]) controls.moveForward(speed);
+        if (keys["s"]) controls.moveForward(-speed);
+        if (keys["a"]) controls.moveRight(-speed);
+        if (keys["d"]) controls.moveRight(speed);
+    }
+
+    renderer.render(scene, camera);
+});
+
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202533);
 
