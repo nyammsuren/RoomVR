@@ -58,23 +58,7 @@ window.goRoom = (n) => {
     room2.visible = (n === 2);
 
     if (n === 1) camera.position.set(0, 1.6, 4);
-    if (n === 2) camera.position.set(6, 1.6, 0);
+    if (n === 2) camera.position.set(2, 1.6, 0);
 };
 
-// ======================
-// LOOP
-// ======================
-renderer.setAnimationLoop(() => {
 
-    const speed = 0.08;
-
-    if (!renderer.xr.isPresenting) {
-
-        if (keys["w"]) controls.moveForward(speed);
-        if (keys["s"]) controls.moveForward(-speed);
-        if (keys["a"]) controls.moveRight(-speed);
-        if (keys["d"]) controls.moveRight(speed);
-    }
-
-    renderer.render(scene, camera);
-});
