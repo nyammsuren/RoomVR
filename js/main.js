@@ -155,7 +155,10 @@ window.addEventListener("resize", () => {
 // ======================
 // LOOP
 // ======================
+
+
 renderer.setAnimationLoop(() => {
+    if (room2.visible) room2.userData.update?.();  // ← энэ мөр нэмнэ
     renderer.render(scene, camera);
 });
 controller.addEventListener("selectstart", () => {
