@@ -76,7 +76,7 @@ export function createRoom2(scene) {
     room.add(ceil);
 
     // ======================
-    // ШИРЭЭ + САНДАЛ
+    // СУРАГЧИЙН ШИРЭЭ + САНДАЛ
     // ======================
     function addDesk(x, z) {
         const dm = mat(0x8B6914, 0.7);
@@ -110,7 +110,10 @@ export function createRoom2(scene) {
      [ 0,1],[ 0,-1],[ 0,-3],
      [ 2,1],[ 2,-1],[ 2,-3]].forEach(([x, z]) => addDesk(x, z));
 
-    // Багшийн ширээ
+    // ======================
+    // БАГШИЙН ШИРЭЭ
+    // Байрлал: x=-3, y=0.78, z=3.5
+    // ======================
     const tDesk = new THREE.Mesh(new THREE.BoxGeometry(2, 0.07, 0.8), mat(0x6B4C11, 0.6));
     tDesk.position.set(-3, 0.78, 3.5);
     tDesk.castShadow = tDesk.receiveShadow = true;
@@ -122,6 +125,191 @@ export function createRoom2(scene) {
         l.castShadow = true;
         room.add(l);
     });
+
+    // ======================
+    // 🪑 БАГШИЙН САНДАЛ — ширээний ард
+    // Zaagchaar darahad suudal deer teleport hiine
+    // ======================
+    const chairG = new THREE.Group();
+    const chM  = mat(0x3a2210, 0.6);
+    const chLM = mat(0x1a1a1a, 0.4, 0.3);
+
+    // Суудал — teleport target
+    const chairSeat = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.05, 0.50), chM);
+    chairSeat.position.set(0, 0.48, 0);
+    chairSeat.castShadow = true;
+    chairSeat.userData = { kind: "teacherChair" };   // main.js танина
+    chairG.add(chairSeat);
+
+    // Нуруу тулгуур
+    const chairBack = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.50, 0.05), chM);
+    chairBack.position.set(0, 0.75, -0.23);
+    chairBack.castShadow = true;
+    chairBack.userData = { kind: "teacherChair" };
+    chairG.add(chairBack);
+
+    // 4 хөл
+    [[0.22,0.22],[0.22,-0.22],[-0.22,0.22],[-0.22,-0.22]].forEach(([dx,dz]) => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.48, 0.05), chLM);
+        leg.position.set(dx, 0.24, dz);
+        leg.castShadow = true;
+        chairG.add(leg);
+    });
+
+    // Нуруу тулгуурын хажуу баганууд
+    [0.22,-0.22].forEach(dx => {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.52, 0.04), chLM);
+        p.position.set(dx, 0.74, -0.23);
+        chairG.add(p);
+    });
+
+    // Сандал ширээний ардаас z=4.22 байрлал
+    chairG.position.set(-3, 0, 4.22);
+    room.add(chairG);
+
+    // Сандал дээрх "Суух" шошго
+    const sitCanvas = document.createElement("canvas");
+    sitCanvas.width = 192; sitCanvas.height = 48;
+    const sctx = sitCanvas.getContext("2d");
+    sctx.fillStyle = "rgba(0,0,0,0)";
+    sctx.fillRect(0, 0, 192, 48);
+    sctx.fillStyle = "#ffdd44";
+    sctx.font = "bold 22px Arial";
+    sctx.textAlign = "center";
+    sctx.textBaseline = "middle";
+    sctx.fillText("▼ Суух", 96, 24);
+    const sitTex = new THREE.CanvasTexture(sitCanvas);
+    const sitLabel = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.6, 0.15),
+        new THREE.MeshBasicMaterial({ map: sitTex, transparent: true, depthTest: false })
+    );
+    sitLabel.position.set(-3, 1.35, 4.22);
+    room.add(sitLabel);
+
+    // ======================
+    // 💻 БАГШИЙН КОМПЬЮТЕР — ширээний баруун талд
+    // ======================
+    const pcG = new THREE.Group();
+    const pcM = mat(0x1a1a1a, 0.2, 0.7);
+
+    // Монитор хүрээ
+    const monFrame = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.33, 0.025), pcM);
+    monFrame.position.set(0, 0.20, 0);
+    monFrame.castShadow = true;
+    pcG.add(monFrame);
+
+    // Дэлгэц — цэнхэр гялбаатай
+    const monScreen = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.44, 0.27),
+        new THREE.MeshStandardMaterial({
+            color: 0x0d2a4a,
+            emissive: 0x0d2a4a,
+            emissiveIntensity: 1.0,
+            roughness: 0.05
+        })
+    );
+    monScreen.position.set(0, 0.20, 0.014);
+    pcG.add(monScreen);
+
+    // Дэлгэц дээрх UI шугамууд
+    [
+        { y: 0.07, w: 0.28, color: 0x2266cc },
+        { y: 0.02, w: 0.18, color: 0x115522 },
+        { y:-0.03, w: 0.22, color: 0x115522 },
+        { y:-0.08, w: 0.14, color: 0x333355 },
+    ].forEach(({ y, w, color }) => {
+        const bar = new THREE.Mesh(
+            new THREE.PlaneGeometry(w, 0.016),
+            new THREE.MeshBasicMaterial({ color })
+        );
+        bar.position.set(-0.05, 0.20 + y, 0.015);
+        pcG.add(bar);
+    });
+
+    // Монитор тулгуур
+    const monSt = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.10, 0.04), pcM);
+    monSt.position.set(0, 0.025, 0);
+    pcG.add(monSt);
+    const monBase = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 0.12), pcM);
+    monBase.position.set(0, -0.02, 0);
+    pcG.add(monBase);
+
+    // Гар (keyboard)
+    const kbd = new THREE.Mesh(
+        new THREE.BoxGeometry(0.30, 0.012, 0.12),
+        mat(0x2a2a2a, 0.4, 0.3)
+    );
+    kbd.position.set(0, -0.052, 0.14);
+    kbd.castShadow = true;
+    pcG.add(kbd);
+
+    // Хулгана
+    const mouseMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.055, 0.012, 0.09),
+        mat(0x2a2a2a, 0.3, 0.4)
+    );
+    mouseMesh.position.set(0.21, -0.052, 0.14);
+    pcG.add(mouseMesh);
+
+    // Монитор гэрэл
+    const monLight = new THREE.PointLight(0x2255ff, 0.5, 1.0);
+    monLight.position.set(0, 0.20, 0.25);
+    pcG.add(monLight);
+
+    pcG.position.set(-3 + 0.48, 0.78, 3.5);
+    room.add(pcG);
+
+    // ======================
+    // ☕ КОФЕНИЙ АЯГ — ширээний зүүн талд
+    // ======================
+    const cupG = new THREE.Group();
+    const cupMat = mat(0xf0ede8, 0.4, 0.1);
+
+    // Аяга биет
+    const cup = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.035, 0.028, 0.072, 16),
+        cupMat
+    );
+    cup.position.set(0, 0.036, 0);
+    cup.castShadow = true;
+    cupG.add(cup);
+
+    // Кофе шингэн
+    const coffee = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.030, 0.030, 0.006, 16),
+        new THREE.MeshStandardMaterial({ color: 0x1e0a00, roughness: 0.2 })
+    );
+    coffee.position.set(0, 0.069, 0);
+    cupG.add(coffee);
+
+    // Уурын туйл (жижиг мэргэжлийн гоё мэт цагаан дугуй)
+    const steam = new THREE.Mesh(
+        new THREE.TorusGeometry(0.012, 0.003, 6, 12),
+        new THREE.MeshBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.5 })
+    );
+    steam.rotation.x = Math.PI / 2;
+    steam.position.set(0, 0.10, 0);
+    cupG.add(steam);
+
+    // Бариул
+    const handle = new THREE.Mesh(
+        new THREE.TorusGeometry(0.018, 0.005, 6, 10, Math.PI),
+        cupMat
+    );
+    handle.rotation.y = Math.PI / 2;
+    handle.position.set(0.042, 0.036, 0);
+    cupG.add(handle);
+
+    // Таваг
+    const saucer = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.052, 0.048, 0.010, 16),
+        cupMat
+    );
+    saucer.position.set(0, 0.005, 0);
+    cupG.add(saucer);
+
+    cupG.position.set(-3 - 0.52, 0.78, 3.5);
+    room.add(cupG);
 
     // ======================
     // 📺 TV
@@ -142,15 +330,13 @@ export function createRoom2(scene) {
     // ╔══════════════════════════════════════╗
     // ║  ВИДЕО ФАЙЛЫН ЗАМАА ЭНД БИЧНЭ ҮҮ   ║
     // ╚══════════════════════════════════════╝
-    vid.src         = "js/View.mp4";  // ← файлын зам
+    vid.src         = "js/view.mp4";
     vid.loop        = true;
     vid.muted       = false;
     vid.playsInline = true;
-    // crossOrigin хасав — локал файлд NotSupportedError үүсгэдэг
     vid.style.display = "none";
     document.body.appendChild(vid);
 
-    // VideoTexture
     const videoTex = new THREE.VideoTexture(vid);
     videoTex.minFilter = THREE.LinearFilter;
     videoTex.magFilter = THREE.LinearFilter;
@@ -161,15 +347,12 @@ export function createRoom2(scene) {
     tvScreen.userData = { kind: "tv" };
     tvG.add(tvScreen);
 
-    // Видео бэлэн болмогц тоглуулна
     const tryPlay = () => {
         vid.play().catch(e => console.warn("Video play:", e));
     };
-
     vid.addEventListener("canplay", tryPlay, { once: true });
     if (vid.readyState >= 3) tryPlay();
 
-    // TV play / pause — VR болон mouse дарахад
     room.userData.toggleVideo = () => {
         if (vid.paused) {
             vid.play().catch(e => console.warn("Video play:", e));
@@ -182,9 +365,7 @@ export function createRoom2(scene) {
     const ledBar = new THREE.Mesh(
         new THREE.BoxGeometry(2.4, 0.04, 0.04),
         new THREE.MeshStandardMaterial({
-            color: 0x1a88ff,
-            emissive: 0x1a88ff,
-            emissiveIntensity: 1.5
+            color: 0x1a88ff, emissive: 0x1a88ff, emissiveIntensity: 1.5
         })
     );
     ledBar.position.set(0, -0.76, 0.055);
@@ -202,7 +383,6 @@ export function createRoom2(scene) {
     tvG.position.set(0, 2.3, -RD / 2 + 0.07);
     room.add(tvG);
 
-    // TV гэрэл
     const tvLight = new THREE.PointLight(0x3366ff, 2.0, 6);
     tvLight.position.set(0, 2.3, -RD / 2 + 0.9);
     room.add(tvLight);
@@ -212,41 +392,28 @@ export function createRoom2(scene) {
     // ======================
     function addCeilingLight(x, z) {
         const g = new THREE.Group();
-
-        const box = new THREE.Mesh(
-            new THREE.BoxGeometry(0.6, 0.08, 0.6),
-            mat(0xeeeeee, 0.4)
-        );
+        const box = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.08, 0.6), mat(0xeeeeee, 0.4));
         box.castShadow = true;
         g.add(box);
-
         const panel = new THREE.Mesh(
             new THREE.BoxGeometry(0.52, 0.02, 0.52),
-            new THREE.MeshStandardMaterial({
-                color: 0xfffde7,
-                emissive: 0xfffde7,
-                emissiveIntensity: 3
-            })
+            new THREE.MeshStandardMaterial({ color: 0xfffde7, emissive: 0xfffde7, emissiveIntensity: 3 })
         );
         panel.position.y = -0.05;
         g.add(panel);
-
         const wire = new THREE.Mesh(
             new THREE.CylinderGeometry(0.008, 0.008, 0.25, 6),
             mat(0x333333, 0.5)
         );
         wire.position.y = 0.165;
         g.add(wire);
-
         g.position.set(x, RH - 0.04, z);
         room.add(g);
-
         const l = new THREE.PointLight(0xfffde7, 2.5, 8);
         l.position.set(x, RH - 0.2, z);
         l.castShadow = true;
         room.add(l);
-
-        return { light: l, panel };
+        return { light: l };
     }
 
     const cl1 = addCeilingLight(-2, -1);
@@ -263,10 +430,8 @@ export function createRoom2(scene) {
     backDoor.userData = { kind: "backDoor" };
     room.add(backDoor);
 
-    // Хаалганы шошго
     const labelCanvas = document.createElement("canvas");
-    labelCanvas.width  = 256;
-    labelCanvas.height = 64;
+    labelCanvas.width = 256; labelCanvas.height = 64;
     const lctx = labelCanvas.getContext("2d");
     lctx.fillStyle = "rgba(0,0,0,0)";
     lctx.fillRect(0, 0, 256, 64);
@@ -275,7 +440,6 @@ export function createRoom2(scene) {
     lctx.textAlign = "center";
     lctx.textBaseline = "middle";
     lctx.fillText("← Room 1", 128, 32);
-
     const labelTex = new THREE.CanvasTexture(labelCanvas);
     const label = new THREE.Mesh(
         new THREE.PlaneGeometry(1.0, 0.25),
@@ -288,14 +452,17 @@ export function createRoom2(scene) {
     // UPDATE LOOP
     // ======================
     room.userData.update = () => {
-        if (!vid.paused && !vid.ended) {
-            videoTex.needsUpdate = true;
-        }
+        if (!vid.paused && !vid.ended) videoTex.needsUpdate = true;
         const t = performance.now() * 0.001;
         tvLight.intensity                 = 1.8 + Math.sin(t * 2.5) * 0.4;
         ledBar.material.emissiveIntensity = 1.2 + Math.sin(t * 1.5) * 0.5;
         cl1.light.intensity               = 2.3 + Math.sin(t * 0.5) * 0.2;
         cl2.light.intensity               = 2.3 + Math.sin(t * 0.5 + 1) * 0.2;
+        // Монитор гэрэл анивчлага
+        monLight.intensity = 0.4 + Math.sin(t * 1.2) * 0.15;
+        // Уурын эффект
+        steam.position.y = 0.10 + Math.sin(t * 2) * 0.005;
+        steam.material.opacity = 0.3 + Math.sin(t * 1.5) * 0.2;
     };
 
     return room;
