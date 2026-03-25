@@ -919,5 +919,64 @@ export function createRoom1(scene, camera, renderer) {
         }
     });
 
+// ── ХААЛГА — куб ──
+    const doorMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(1.2, 2.2, 0.15),
+        new THREE.MeshStandardMaterial({
+            color: 0x003333,
+            emissive: 0x00ffcc,
+            emissiveIntensity: 0.15,
+            transparent: true,
+            opacity: 0.6,
+        })
+    );
+    doorMesh.position.set(2, 1.1, -4.8);  // ← байрлалыг тохируулна уу
+    doorMesh.userData.kind = "door";
+    room.add(doorMesh);
+    clickableObjects.push(doorMesh);
+
+    // Хүрээ
+    const doorEdge = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(1.2, 2.2, 0.15)),
+        new THREE.LineBasicMaterial({ color: 0x00ffcc })
+    );
+    doorEdge.position.copy(doorMesh.position);
+    room.add(doorEdge);
+
+    // Шошго
+    const doorCanvas = document.createElement("canvas");
+    doorCanvas.width = 512; doorCanvas.height = 128;
+    const dctx = doorCanvas.getContext("2d");
+
+    dctx.fillStyle = "rgba(0,20,20,0.85)";
+    dctx.roundRect(4, 4, 504, 120, 16); dctx.fill();
+    dctx.strokeStyle = "#00ffcc";
+    dctx.lineWidth = 3;
+    dctx.roundRect(4, 4, 504, 120, 16); dctx.stroke();
+    dctx.fillStyle = "#00ffcc";
+    dctx.font = "bold 42px Arial";
+    dctx.textAlign = "center";
+    dctx.textBaseline = "middle";
+    dctx.fillText("Хичээлийн танхимд", 256, 48);
+    dctx.fillStyle = "#ffffff";
+    dctx.font = "28px Arial";
+    dctx.fillText("нэвтрэх →", 256, 96);
+
+    const doorLabel = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.4, 0.35),
+        new THREE.MeshBasicMaterial({
+            map: new THREE.CanvasTexture(doorCanvas),
+            transparent: true,
+            depthTest: false
+        })
+    );
+    doorLabel.position.set(
+        doorMesh.position.x,
+        doorMesh.position.y + 1.3,
+        doorMesh.position.z
+    );
+    room.add(doorLabel);
+
     return room;
+}
 }
