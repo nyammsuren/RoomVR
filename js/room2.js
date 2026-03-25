@@ -5,9 +5,6 @@ export function createRoom2(scene) {
     const room = new THREE.Group();
     scene.add(room);
 
-    // ======================
-    // ГЭРЭЛТҮҮЛЭГ
-    // ======================
     const ambient = new THREE.AmbientLight(0xffffff, 0.4);
     room.add(ambient);
 
@@ -16,9 +13,6 @@ export function createRoom2(scene) {
     dirLight.castShadow = true;
     room.add(dirLight);
 
-    // ======================
-    // ӨРӨӨНИЙ ХЭМЖЭЭ
-    // ======================
     const RW = 10, RH = 5, RD = 10;
 
     function mat(color, rough = 0.8, metal = 0) {
@@ -37,7 +31,6 @@ export function createRoom2(scene) {
     floor.userData = { teleport: true };
     room.add(floor);
 
-    // Шалны зураас
     for (let i = -4; i <= 4; i++) {
         let g = new THREE.Mesh(
             new THREE.PlaneGeometry(0.02, RD),
@@ -69,12 +62,11 @@ export function createRoom2(scene) {
         room.add(m);
     }
 
-    addWall(RW, RH, [0, RH / 2, -RD / 2]);                // арын хана (TV)
-    addWall(RW, RH, [0, RH / 2,  RD / 2], Math.PI);       // урдаа (хаалга)
-    addWall(RD, RH, [-RW / 2, RH / 2, 0],  Math.PI / 2);  // зүүн
-    addWall(RD, RH, [ RW / 2, RH / 2, 0], -Math.PI / 2);  // баруун
+    addWall(RW, RH, [0, RH / 2, -RD / 2]);
+    addWall(RW, RH, [0, RH / 2,  RD / 2], Math.PI);
+    addWall(RD, RH, [-RW / 2, RH / 2, 0],  Math.PI / 2);
+    addWall(RD, RH, [ RW / 2, RH / 2, 0], -Math.PI / 2);
 
-    // Тааз
     const ceil = new THREE.Mesh(
         new THREE.PlaneGeometry(RW, RD),
         mat(0xf0ece0, 0.9)
@@ -84,7 +76,7 @@ export function createRoom2(scene) {
     room.add(ceil);
 
     // ======================
-    // СУРАГЧИЙН ШИРЭЭ + САНДАЛ
+    // ШИРЭЭ + САНДАЛ
     // ======================
     function addDesk(x, z) {
         const dm = mat(0x8B6914, 0.7);
@@ -118,9 +110,7 @@ export function createRoom2(scene) {
      [ 0,1],[ 0,-1],[ 0,-3],
      [ 2,1],[ 2,-1],[ 2,-3]].forEach(([x, z]) => addDesk(x, z));
 
-    // ======================
-    // БАГШИЙН ШИРЭЭ
-    // ======================
+    // Багшийн ширээ
     const tDesk = new THREE.Mesh(new THREE.BoxGeometry(2, 0.07, 0.8), mat(0x6B4C11, 0.6));
     tDesk.position.set(-3, 0.78, 3.5);
     tDesk.castShadow = tDesk.receiveShadow = true;
@@ -134,16 +124,16 @@ export function createRoom2(scene) {
     });
 
     // ======================
-    // 📺 TV — арын хана дээр
+    // 📺 TV
     // ======================
     const tvG = new THREE.Group();
 
-    // Хүрээ
     const tvFrame = new THREE.Mesh(
         new THREE.BoxGeometry(2.6, 1.55, 0.1),
         mat(0x111111, 0.2, 0.7)
     );
     tvFrame.castShadow = true;
+    tvFrame.userData = { kind: "tv" };
     tvG.add(tvFrame);
 
     // ── VIDEO ELEMENT ──
@@ -152,20 +142,13 @@ export function createRoom2(scene) {
     // ╔══════════════════════════════════════╗
     // ║  ВИДЕО ФАЙЛЫН ЗАМАА ЭНД БИЧНЭ ҮҮ   ║
     // ╚══════════════════════════════════════╝
-    vid.src         = "view.mp4";   // ← өөрчилнө үү
+    vid.src         = "js/view.mp4";  // ← файлын зам
     vid.loop        = true;
     vid.muted       = false;
     vid.playsInline = true;
-    vid.crossOrigin = "anonymous";
+    // crossOrigin хасав — локал файлд NotSupportedError үүсгэдэг
     vid.style.display = "none";
     document.body.appendChild(vid);
-
-    // Анх товших үед дуутай тоглуулна (browser autoplay policy)
-    const startVideo = () => {
-        vid.play().catch(e => console.warn("Video play:", e));
-    };
-    window.addEventListener("click",      startVideo, { once: true });
-    window.addEventListener("touchstart", startVideo, { once: true });
 
     // VideoTexture
     const videoTex = new THREE.VideoTexture(vid);
@@ -175,7 +158,25 @@ export function createRoom2(scene) {
     const tvScreenMat = new THREE.MeshBasicMaterial({ map: videoTex });
     const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.35), tvScreenMat);
     tvScreen.position.z = 0.052;
+    tvScreen.userData = { kind: "tv" };
     tvG.add(tvScreen);
+
+    // Видео бэлэн болмогц тоглуулна
+    const tryPlay = () => {
+        vid.play().catch(e => console.warn("Video play:", e));
+    };
+
+    vid.addEventListener("canplay", tryPlay, { once: true });
+    if (vid.readyState >= 3) tryPlay();
+
+    // TV play / pause — VR болон mouse дарахад
+    room.userData.toggleVideo = () => {
+        if (vid.paused) {
+            vid.play().catch(e => console.warn("Video play:", e));
+        } else {
+            vid.pause();
+        }
+    };
 
     // LED зураас
     const ledBar = new THREE.Mesh(
@@ -258,11 +259,11 @@ export function createRoom2(scene) {
         new THREE.BoxGeometry(1, 2, 0.2),
         new THREE.MeshStandardMaterial({ color: 0xff6600 })
     );
-    backDoor.position.set(-2, 1, RD / 2 - 0.15);  // урдаа хана дээр
-    backDoor.userData = { kind: "backDoor" };       // main.js танина
+    backDoor.position.set(-2, 1, RD / 2 - 0.15);
+    backDoor.userData = { kind: "backDoor" };
     room.add(backDoor);
 
-    // Хаалганы шошго "← Room 1"
+    // Хаалганы шошго
     const labelCanvas = document.createElement("canvas");
     labelCanvas.width  = 256;
     labelCanvas.height = 64;
@@ -284,17 +285,17 @@ export function createRoom2(scene) {
     room.add(label);
 
     // ======================
-    // UPDATE (main.js-ийн loop-д дуудна)
+    // UPDATE LOOP
     // ======================
     room.userData.update = () => {
         if (!vid.paused && !vid.ended) {
             videoTex.needsUpdate = true;
         }
         const t = performance.now() * 0.001;
-        tvLight.intensity              = 1.8 + Math.sin(t * 2.5) * 0.4;
+        tvLight.intensity                 = 1.8 + Math.sin(t * 2.5) * 0.4;
         ledBar.material.emissiveIntensity = 1.2 + Math.sin(t * 1.5) * 0.5;
-        cl1.light.intensity            = 2.3 + Math.sin(t * 0.5) * 0.2;
-        cl2.light.intensity            = 2.3 + Math.sin(t * 0.5 + 1) * 0.2;
+        cl1.light.intensity               = 2.3 + Math.sin(t * 0.5) * 0.2;
+        cl2.light.intensity               = 2.3 + Math.sin(t * 0.5 + 1) * 0.2;
     };
 
     return room;
