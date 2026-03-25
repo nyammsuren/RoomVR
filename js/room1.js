@@ -979,4 +979,4 @@ export function createRoom1(scene, camera, renderer) {
 
     return room;
 }
-}
+
