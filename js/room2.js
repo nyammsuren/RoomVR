@@ -330,7 +330,7 @@ export function createRoom2(scene) {
     // ╔══════════════════════════════════════╗
     // ║  ВИДЕО ФАЙЛЫН ЗАМАА ЭНД БИЧНЭ ҮҮ   ║
     // ╚══════════════════════════════════════╝
-    vid.src         = "js/view.mp4";
+    vid.src         = "js/View.mp4";
     vid.loop        = true;
     vid.muted       = false;
     vid.playsInline = true;
