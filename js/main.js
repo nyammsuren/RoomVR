@@ -51,100 +51,122 @@ room2.visible = false;
 // ======================
 // ROOM SWITCH
 // ======================
-
 window.goRoom = (n) => {
-
     room1.visible = (n === 1);
     room2.visible = (n === 2);
 
-    if (n === 1) {
-        camera.position.set(0, 1.6, 4);
-    }
-
-    if (n === 2) {
-        camera.position.set(2, 1.6, 4); // 🔥 ойр байрлал
-    }
+    if (n === 1) camera.position.set(0, 1.6, 4);
+    if (n === 2) camera.position.set(0, 1.6, 4);
 };
+
 // ==========================
 // VR CONTROLLER
 // ==========================
 const controller = renderer.xr.getController(0);
 scene.add(controller);
 
-// LASER
-const geometry = new THREE.BufferGeometry().setFromPoints([
+// Laser
+const laserGeo = new THREE.BufferGeometry().setFromPoints([
     new THREE.Vector3(0, 0, 0),
     new THREE.Vector3(0, 0, -1)
 ]);
-
 const line = new THREE.Line(
-    geometry,
+    laserGeo,
     new THREE.LineBasicMaterial({ color: 0xffffff })
 );
-
-line.scale.z = 15; // 🔥 уртасгасан
+line.scale.z = 15;
 controller.add(line);
 
 // ==========================
-// VR RAYCAST
+// VR RAYCAST — нэг л удаа!
 // ==========================
 const tempMatrix = new THREE.Matrix4();
-const raycaster = new THREE.Raycaster();
+const raycaster  = new THREE.Raycaster();
 
 controller.addEventListener("selectstart", () => {
 
     tempMatrix.identity().extractRotation(controller.matrixWorld);
-
     raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
     raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
 
     const hits = raycaster.intersectObjects(scene.children, true);
+    if (!hits.length) return;
 
-    if (hits.length > 0) {
-        const obj = hits[0].object;
+    const obj = hits[0].object;
 
-        if (obj.userData?.kind === "door") {
-            window.goRoom(2);
-        }
+    // 🚪 Өрөө шилжих
+    if (obj.userData?.kind === "door") {
+        window.goRoom(2);
+        return;
+    }
+    if (obj.userData?.kind === "backDoor") {
+        window.goRoom(1);
+        return;
+    }
 
-        if (obj.userData?.kind === "backDoor") {
-            window.goRoom(1);
-        }
+    // 🪑 Багшийн сандал — суух
+    if (obj.userData?.kind === "teacherChair") {
+        camera.position.set(-3, 1.2, 4.22);
+        return;
+    }
+
+    // 📺 TV play/pause
+    if (obj.userData?.kind === "tv") {
+        room2.userData.toggleVideo?.();
+        return;
+    }
+
+    // 🟢 Teleport
+    if (obj.userData?.teleport) {
+        const point = hits[0].point;
+        camera.position.set(point.x, 1.6, point.z);
     }
 });
 
 // ==========================
-// 🖱 MOUSE RAYCAST (шинэ 🔥)
+// 🖱 MOUSE RAYCAST
 // ==========================
-const mouse = new THREE.Vector2();
+const mouse          = new THREE.Vector2();
 const raycasterMouse = new THREE.Raycaster();
 
 window.addEventListener("click", (event) => {
 
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.x =  (event.clientX / window.innerWidth)  * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     raycasterMouse.setFromCamera(mouse, camera);
 
     const hits = raycasterMouse.intersectObjects(scene.children, true);
+    if (!hits.length) return;
 
-    if (hits.length > 0) {
-        const obj = hits[0].object;
+    const obj = hits[0].object;
+    console.log("CLICK:", obj.userData);
 
-        console.log("CLICK:", obj);
+    // 🚪 Өрөө шилжих
+    if (obj.userData?.kind === "door") {
+        window.goRoom(2);
+        return;
+    }
+    if (obj.userData?.kind === "backDoor") {
+        window.goRoom(1);
+        return;
+    }
 
-        if (obj.userData?.kind === "door") {
-            window.goRoom(2);
-        }
+    // 📺 TV play/pause
+    if (obj.userData?.kind === "tv") {
+        room2.userData.toggleVideo?.();
+        return;
+    }
 
-        if (obj.userData?.kind === "backDoor") {
-            window.goRoom(1);
-        }
+    // 🪑 Багшийн сандал — суух
+    if (obj.userData?.kind === "teacherChair") {
+        camera.position.set(-3, 1.2, 4.22);
+        return;
     }
 });
 
 // ======================
-// RESIZE FIX 🔥
+// RESIZE
 // ======================
 window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -153,48 +175,9 @@ window.addEventListener("resize", () => {
 });
 
 // ======================
-// LOOP
+// ANIMATION LOOP
 // ======================
-
-
 renderer.setAnimationLoop(() => {
-    if (room2.visible) room2.userData.update?.();  // ← энэ мөр нэмнэ
+    if (room2.visible) room2.userData.update?.();
     renderer.render(scene, camera);
-});
-controller.addEventListener("selectstart", () => {
-
-    tempMatrix.identity().extractRotation(controller.matrixWorld);
-
-    raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-    raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-
-    const hits = raycaster.intersectObjects(scene.children, true);
-
-    if (hits.length > 0) {
-
-        const obj = hits[0].object;
-
-        // 🚪 ROOM SWITCH
-        if (obj.userData?.kind === "door") {
-            window.goRoom(2);
-            return;
-        }
-
-        if (obj.userData?.kind === "backDoor") {
-            window.goRoom(1);
-            return;
-        }
-
-        // 🟢 TELEPORT (хамгийн чухал)
-        if (obj.userData?.teleport) {
-
-            const point = hits[0].point;
-
-            camera.position.set(
-                point.x,
-                1.6,
-                point.z
-            );
-        }
-    }
 });
