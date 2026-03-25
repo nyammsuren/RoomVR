@@ -1,7 +1,18 @@
 import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { createRoom1 } from "./room1.js";
 import { createRoom2 } from "./room2.js";
+
+// ======================
+// RENDERER — эхэлж үүсгэнэ
+// ======================
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+document.body.appendChild(VRButton.createButton(renderer));
 
 // ======================
 // SCENE
@@ -10,7 +21,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202533);
 
 // ======================
-// CAMERA
+// CAMERA — renderer-ийн дараа
 // ======================
 const camera = new THREE.PerspectiveCamera(
     75,
@@ -21,13 +32,13 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 1.6, 4);
 
 // ======================
-// RENDERER
+// ORBIT CONTROLS — camera болон renderer аль аль нь бэлэн болсны дараа
 // ======================
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.xr.enabled = true;
-document.body.appendChild(renderer.domElement);
-document.body.appendChild(VRButton.createButton(renderer));
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.0, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.update();
 
 // ======================
 // CLOCK
@@ -40,6 +51,7 @@ const clock = new THREE.Clock();
 scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1));
 const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(5, 10, 5);
+light.castShadow = true;
 scene.add(light);
 
 // ======================
@@ -55,6 +67,7 @@ scene.add(playerRig);
 const room1 = createRoom1(scene, camera, renderer);
 const room2 = createRoom2(scene);
 
+room1.visible = true;
 room2.visible = false;
 
 // ======================
@@ -63,8 +76,15 @@ room2.visible = false;
 window.goRoom = (n) => {
     room1.visible = (n === 1);
     room2.visible = (n === 2);
-    if (n === 1) camera.position.set(0, 1.6, 4);
-    if (n === 2) camera.position.set(0, 1.6, 4);
+    if (n === 1) {
+        camera.position.set(0, 1.6, 4);
+        controls.target.set(0, 1.0, 0);
+    }
+    if (n === 2) {
+        camera.position.set(0, 1.6, 4);
+        controls.target.set(0, 1.0, 0);
+    }
+    controls.update();
 };
 
 // ==========================
@@ -99,13 +119,13 @@ controller.addEventListener("selectstart", () => {
     if (!hits.length) return;
     const obj = hits[0].object;
 
-    if (obj.userData?.kind === "door")          { window.goRoom(2); return; }
-    if (obj.userData?.kind === "backDoor")       { window.goRoom(1); return; }
-    if (obj.userData?.kind === "teacherChair")   { camera.position.set(-3, 1.2, 4.22); return; }
-    if (obj.userData?.kind === "tv")             { room2.userData.toggleVideo?.(); return; }
+    if (obj.userData?.kind === "door")         { window.goRoom(2); return; }
+    if (obj.userData?.kind === "backDoor")      { window.goRoom(1); return; }
+    if (obj.userData?.kind === "teacherChair")  { camera.position.set(-3, 1.2, 4.22); return; }
+    if (obj.userData?.kind === "tv")            { room2.userData.toggleVideo?.(); return; }
     if (obj.userData?.teleport) {
         const point = hits[0].point;
-        camera.position.set(point.x, 1.6, point.z);
+        playerRig.position.set(point.x, 0, point.z);
     }
 });
 
@@ -116,6 +136,8 @@ const mouse          = new THREE.Vector2();
 const raycasterMouse = new THREE.Raycaster();
 
 window.addEventListener("click", (event) => {
+    if (renderer.xr.isPresenting) return;
+
     mouse.x =  (event.clientX / window.innerWidth)  * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -125,10 +147,21 @@ window.addEventListener("click", (event) => {
     const obj = hits[0].object;
     console.log("CLICK:", obj.userData);
 
-    if (obj.userData?.kind === "door")          { window.goRoom(2); return; }
-    if (obj.userData?.kind === "backDoor")       { window.goRoom(1); return; }
-    if (obj.userData?.kind === "teacherChair")   { camera.position.set(-3, 1.2, 4.22); return; }
-    if (obj.userData?.kind === "tv")             { room2.userData.toggleVideo?.(); return; }
+    if (obj.userData?.kind === "door")         { window.goRoom(2); return; }
+    if (obj.userData?.kind === "backDoor")      { window.goRoom(1); return; }
+    if (obj.userData?.kind === "teacherChair")  { camera.position.set(-3, 1.2, 4.22); return; }
+    if (obj.userData?.kind === "tv")            { room2.userData.toggleVideo?.(); return; }
+});
+
+// ==========================
+// VR горимд OrbitControls унтраах
+// ==========================
+renderer.xr.addEventListener("sessionstart", () => {
+    controls.enabled = false;
+});
+renderer.xr.addEventListener("sessionend", () => {
+    controls.enabled = true;
+    controls.update();
 });
 
 // ======================
@@ -145,7 +178,13 @@ window.addEventListener("resize", () => {
 // ======================
 renderer.setAnimationLoop(() => {
     const delta = clock.getDelta();
+
+    if (!renderer.xr.isPresenting) {
+        controls.update();
+    }
+
     if (room1.visible) room1.userData.update?.(delta, playerRig);
     if (room2.visible) room2.userData.update?.();
+
     renderer.render(scene, camera);
 });
