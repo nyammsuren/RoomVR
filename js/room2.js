@@ -299,7 +299,7 @@ export function createRoom2(scene) {
     tvG.add(tvFrame);
 
     const vid = document.createElement("video");
-    vid.src         = "js/view.mp4";
+    vid.src         = "js/View.mp4";
     vid.loop        = true;
     vid.muted       = true;   // ✅ autoplay-д заавал хэрэгтэй
     vid.playsInline = true;
