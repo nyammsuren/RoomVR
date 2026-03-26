@@ -1,4 +1,5 @@
 import * as THREE from "three";
+
 export function createRoom2(scene, camera, renderer) {
 
     const room = new THREE.Group();
@@ -287,7 +288,7 @@ export function createRoom2(scene, camera, renderer) {
     // ======================
     // TV
     // ======================
-  const tvG = new THREE.Group();
+    const tvG = new THREE.Group();
 
     const tvFrame = new THREE.Mesh(
         new THREE.BoxGeometry(2.6, 1.55, 0.1),
@@ -297,33 +298,91 @@ export function createRoom2(scene, camera, renderer) {
     tvFrame.userData = { kind: "tv" };
     tvG.add(tvFrame);
 
+    // ✅ Видео элемент — олон format, зөв зам
     const vid = document.createElement("video");
-    vid.src         = "js/view.mp4";
     vid.loop        = true;
-    vid.muted       = true;   // ✅ autoplay-д заавал хэрэгтэй
+    vid.muted       = true;
     vid.playsInline = true;
+    vid.crossOrigin = "anonymous";
     vid.style.display = "none";
+
+    // ✅ ./view.mp4 = js/ фолдер (main.js-тэй нэг газар)
+    // Хэрэв root-д байвал "../view.mp4" болгоно
+    ["./view.mp4", "./view.webm"].forEach(src => {
+        const s = document.createElement("source");
+        s.src = src;
+        vid.appendChild(s);
+    });
     document.body.appendChild(vid);
+
+    // ✅ Fallback canvas — видео байхгүй үед харуулна
+    const fallbackCanvas = document.createElement("canvas");
+    fallbackCanvas.width = 640; fallbackCanvas.height = 360;
+    const fctx = fallbackCanvas.getContext("2d");
+
+    function drawFallback(msg = "📺 view.mp4 олдсонгүй") {
+        fctx.fillStyle = "#0d1b2a";
+        fctx.fillRect(0, 0, 640, 360);
+        fctx.strokeStyle = "#1a88ff";
+        fctx.lineWidth = 4;
+        fctx.strokeRect(8, 8, 624, 344);
+        fctx.fillStyle = "#1a88ff";
+        fctx.font = "bold 26px Arial";
+        fctx.textAlign = "center";
+        fctx.textBaseline = "middle";
+        fctx.fillText(msg, 320, 155);
+        fctx.fillStyle = "#446688";
+        fctx.font = "18px Arial";
+        fctx.fillText("js/ фолдерт view.mp4 байршуулна уу", 320, 200);
+        fallbackTex.needsUpdate = true;
+    }
+
+    const fallbackTex = new THREE.CanvasTexture(fallbackCanvas);
+    drawFallback();
 
     const videoTex = new THREE.VideoTexture(vid);
     videoTex.minFilter = THREE.LinearFilter;
     videoTex.magFilter = THREE.LinearFilter;
 
+    // ✅ Эхэндээ fallback — видео бэлэн болмогц солино
+    const tvScreenMat = new THREE.MeshBasicMaterial({ map: fallbackTex });
+
     const tvScreen = new THREE.Mesh(
         new THREE.PlaneGeometry(2.4, 1.35),
-        new THREE.MeshBasicMaterial({ map: videoTex })
+        tvScreenMat
     );
     tvScreen.position.z = 0.052;
     tvScreen.userData = { kind: "tv" };
     tvG.add(tvScreen);
 
-    const tryPlay = () => vid.play().catch(e => console.warn("Video play:", e));
-    vid.addEventListener("canplay", tryPlay, { once: true });
-    if (vid.readyState >= 3) tryPlay();
+    let videoReady = false;
 
+    vid.addEventListener("canplay", () => {
+        videoReady = true;
+        tvScreenMat.map = videoTex;
+        tvScreenMat.needsUpdate = true;
+        vid.play().catch(e => {
+            // Autoplay blocked — хэрэглэгч дарахыг хүлээнэ
+            drawFallback("▶ TV дарж тоглуулна уу");
+        });
+    }, { once: true });
+
+    vid.addEventListener("error", () => {
+        drawFallback("⚠ view.mp4 олдсонгүй");
+        console.warn("room2: view.mp4 олдсонгүй. js/ фолдерт файл байршуулна уу.");
+    });
+
+    // ✅ toggleVideo — алдаагүй, videoReady шалгана
     room.userData.toggleVideo = () => {
-        if (vid.paused) vid.play().catch(e => console.warn("Video play:", e));
-        else vid.pause();
+        if (!videoReady) {
+            console.warn("room2: видео бэлэн болоогүй байна");
+            return;
+        }
+        if (vid.paused) {
+            vid.play().catch(() => {});
+        } else {
+            vid.pause();
+        }
     };
 
     const ledBar = new THREE.Mesh(
@@ -409,13 +468,13 @@ export function createRoom2(scene, camera, renderer) {
     room.add(label);
 
     // ======================
-    // ✅ ЛАБОРАТОРИЙН ХААЛГА → ROOM3 (нэг удаа, RD ашигласан)
+    // ЛАБОРАТОРИЙН ХААЛГА → ROOM3
     // ======================
     const labDoor = new THREE.Mesh(
         new THREE.BoxGeometry(1, 2, 0.2),
         new THREE.MeshStandardMaterial({ color: 0x00aaff, transparent: true, opacity: 0.85 })
     );
-    labDoor.position.set(3, 1, -RD / 2 + 0.15);   // ✅ RD — арын хана
+    labDoor.position.set(3, 1, -RD / 2 + 0.15);
     labDoor.name = "labDoor_to_room3";
     labDoor.userData = { kind: "labDoor" };
     room.add(labDoor);
@@ -437,42 +496,27 @@ export function createRoom2(scene, camera, renderer) {
 
     // ======================
     // UPDATE LOOP
+    // main.js: room2.userData.update?.(delta, playerRig) дуудна
+    // Locomotion: main.js-д handleLocomotion() хийдэг тул энд давхардуулахгүй
     // ======================
- room.userData.update = (delta, playerRig) => {
-    if (!vid.paused && !vid.ended) videoTex.needsUpdate = true;
-    const t = performance.now() * 0.001;
-    tvLight.intensity                 = 1.8 + Math.sin(t * 2.5) * 0.4;
-    ledBar.material.emissiveIntensity = 1.2 + Math.sin(t * 1.5) * 0.5;
-    cl1.light.intensity               = 2.3 + Math.sin(t * 0.5) * 0.2;
-    cl2.light.intensity               = 2.3 + Math.sin(t * 0.5 + 1) * 0.2;
-    monLight.intensity                = 0.4 + Math.sin(t * 1.2) * 0.15;
-    steam.position.y                  = 0.10 + Math.sin(t * 2) * 0.005;
-    steam.material.opacity            = 0.3 + Math.sin(t * 1.5) * 0.2;
-    labDoor.material.opacity          = 0.6 + 0.25 * Math.sin(t * 1.8);
+    room.userData.update = (delta, playerRig) => {
+        const t = performance.now() * 0.001;
 
-    // ✅ VR АЛХАХ — room2 дотор
-    if (playerRig && typeof renderer !== 'undefined' && renderer.xr?.isPresenting) {
-        _handleRoom2Locomotion(playerRig);
-    }
-};// ✅ VR Locomotion — room2
-const _vrBtns2 = { X: false, Y: false };
-function _handleRoom2Locomotion(playerRig) {
-    const session = renderer.xr.getSession();
-    if (!session) return;
-    session.inputSources.forEach(src => {
-        const gp = src.gamepad;
-        if (!gp || src.handedness !== 'left') return;
-        const ax = gp.axes[2] || 0;
-        const ay = gp.axes[3] || 0;
-        if (Math.abs(ax) > 0.15 || Math.abs(ay) > 0.15) {
-            const dir = new THREE.Vector3();
-            camera.getWorldDirection(dir); dir.y = 0; dir.normalize();
-            const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0,1,0));
-            playerRig.position.addScaledVector(dir,  -ay * 0.03);
-            playerRig.position.addScaledVector(right,  ax * 0.03);
+        // ✅ Видео texture шинэчлэх — videoReady шалгана
+        if (videoReady && !vid.paused && !vid.ended) {
+            videoTex.needsUpdate = true;
         }
-    });
-}
+
+        tvLight.intensity                 = 1.8 + Math.sin(t * 2.5) * 0.4;
+        ledBar.material.emissiveIntensity = 1.2 + Math.sin(t * 1.5) * 0.5;
+        cl1.light.intensity               = 2.3 + Math.sin(t * 0.5) * 0.2;
+        cl2.light.intensity               = 2.3 + Math.sin(t * 0.5 + 1) * 0.2;
+        monLight.intensity                = 0.4 + Math.sin(t * 1.2) * 0.15;
+        steam.position.y                  = 0.10 + Math.sin(t * 2) * 0.005;
+        steam.material.opacity            = 0.3 + Math.sin(t * 1.5) * 0.2;
+        labDoor.material.opacity          = 0.6 + 0.25 * Math.sin(t * 1.8);
+        // ✅ Locomotion-г main.js handleLocomotion() хийдэг — давхардуулахгүй
+    };
 
     return room;
 }
