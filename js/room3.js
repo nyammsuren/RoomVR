@@ -1,7 +1,13 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 
+// ── КАМЕРЫН ХЯНАЛТ ──
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0,1,0);
+controls.update();
 // ── ТОГТМОЛ УТГУУД ──
 const CABLE_RULES = {
   'router-switch': 'straight',
