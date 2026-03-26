@@ -3,7 +3,10 @@ import { VRButton } from "three/addons/webxr/VRButton.js";
 import { createRoom1 } from "./room1.js";
 import { createRoom2 } from "./room2.js";
 import { createRoom3 } from "./room3.js";   // ✅ шинэ лаборатори
-
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0,1,0);
 // ======================
 // SCENE
 // ======================
