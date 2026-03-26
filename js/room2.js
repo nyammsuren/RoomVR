@@ -1,6 +1,5 @@
 import * as THREE from "three";
-
-export function createRoom2(scene) {
+export function createRoom2(scene, camera, renderer) {
 
     const room = new THREE.Group();
     scene.add(room);
@@ -439,19 +438,41 @@ export function createRoom2(scene) {
     // ======================
     // UPDATE LOOP
     // ======================
-    room.userData.update = () => {
-        if (!vid.paused && !vid.ended) videoTex.needsUpdate = true;
-        const t = performance.now() * 0.001;
-        tvLight.intensity                 = 1.8 + Math.sin(t * 2.5) * 0.4;
-        ledBar.material.emissiveIntensity = 1.2 + Math.sin(t * 1.5) * 0.5;
-        cl1.light.intensity               = 2.3 + Math.sin(t * 0.5) * 0.2;
-        cl2.light.intensity               = 2.3 + Math.sin(t * 0.5 + 1) * 0.2;
-        monLight.intensity                = 0.4 + Math.sin(t * 1.2) * 0.15;
-        steam.position.y                  = 0.10 + Math.sin(t * 2) * 0.005;
-        steam.material.opacity            = 0.3 + Math.sin(t * 1.5) * 0.2;
-        // Лабораторийн хаалга анивчина
-        labDoor.material.opacity          = 0.6 + 0.25 * Math.sin(t * 1.8);
-    };
+ room.userData.update = (delta, playerRig) => {
+    if (!vid.paused && !vid.ended) videoTex.needsUpdate = true;
+    const t = performance.now() * 0.001;
+    tvLight.intensity                 = 1.8 + Math.sin(t * 2.5) * 0.4;
+    ledBar.material.emissiveIntensity = 1.2 + Math.sin(t * 1.5) * 0.5;
+    cl1.light.intensity               = 2.3 + Math.sin(t * 0.5) * 0.2;
+    cl2.light.intensity               = 2.3 + Math.sin(t * 0.5 + 1) * 0.2;
+    monLight.intensity                = 0.4 + Math.sin(t * 1.2) * 0.15;
+    steam.position.y                  = 0.10 + Math.sin(t * 2) * 0.005;
+    steam.material.opacity            = 0.3 + Math.sin(t * 1.5) * 0.2;
+    labDoor.material.opacity          = 0.6 + 0.25 * Math.sin(t * 1.8);
+
+    // ✅ VR АЛХАХ — room2 дотор
+    if (playerRig && typeof renderer !== 'undefined' && renderer.xr?.isPresenting) {
+        _handleRoom2Locomotion(playerRig);
+    }
+};// ✅ VR Locomotion — room2
+const _vrBtns2 = { X: false, Y: false };
+function _handleRoom2Locomotion(playerRig) {
+    const session = renderer.xr.getSession();
+    if (!session) return;
+    session.inputSources.forEach(src => {
+        const gp = src.gamepad;
+        if (!gp || src.handedness !== 'left') return;
+        const ax = gp.axes[2] || 0;
+        const ay = gp.axes[3] || 0;
+        if (Math.abs(ax) > 0.15 || Math.abs(ay) > 0.15) {
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir); dir.y = 0; dir.normalize();
+            const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0,1,0));
+            playerRig.position.addScaledVector(dir,  -ay * 0.03);
+            playerRig.position.addScaledVector(right,  ax * 0.03);
+        }
+    });
+}
 
     return room;
 }
