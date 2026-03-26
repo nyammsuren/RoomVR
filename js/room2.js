@@ -1,4 +1,5 @@
 import * as THREE from "three";
+
 export function createRoom2(scene) {
 
     const room = new THREE.Group();
@@ -241,7 +242,7 @@ export function createRoom2(scene) {
     room.add(pcG);
 
     // ======================
-    // КОФЕНИЙ АЯГ
+    // КОФЕНИЙ АЯГA
     // ======================
     const cupG = new THREE.Group();
     const cupMat = mat(0xf0ede8, 0.4, 0.1);
