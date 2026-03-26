@@ -287,7 +287,7 @@ export function createRoom2(scene, camera, renderer) {
     // ======================
     // TV
     // ======================
-    const tvG = new THREE.Group();
+  const tvG = new THREE.Group();
 
     const tvFrame = new THREE.Mesh(
         new THREE.BoxGeometry(2.6, 1.55, 0.1),
