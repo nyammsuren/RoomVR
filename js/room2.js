@@ -1,5 +1,11 @@
 import * as THREE from "three";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 
+// ── КАМЕРЫН ХЯНАЛТ ──
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0,1,0);
+controls.update();
 export function createRoom2(scene) {
 
     const room = new THREE.Group();
