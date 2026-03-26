@@ -55,7 +55,7 @@ scene.add(playerRig);
 // ROOMS
 // ======================
 const room1 = createRoom1(scene, camera, renderer);
-const room2 = createRoom2(scene);
+const room2 = createRoom2(scene, camera, renderer);
 const room3 = createRoom3(scene, camera, renderer);  // ✅ лаборатори
 
 room2.visible = false;
@@ -95,7 +95,62 @@ const laserLine = new THREE.Line(
 );
 laserLine.scale.z = 15;
 controller.add(laserLine);
+// ✅ Controller 1 (зүүн гар) — locomotion
+const controller1 = renderer.xr.getController(1);
+scene.add(controller1);
 
+const laserGeo1 = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0, -1)
+]);
+const laserLine1 = new THREE.Line(
+    laserGeo1,
+    new THREE.LineBasicMaterial({ color: 0xffaa00 })
+);
+laserLine1.scale.z = 10;
+controller1.add(laserLine1);
+
+// ✅ Teleport marker
+const teleportMarker = new THREE.Mesh(
+    new THREE.RingGeometry(0.15, 0.22, 32),
+    new THREE.MeshBasicMaterial({ color: 0x00ff88, side: THREE.DoubleSide })
+);
+teleportMarker.rotation.x = -Math.PI / 2;
+teleportMarker.visible = false;
+scene.add(teleportMarker);
+
+let teleportTarget = null;
+
+// ✅ Баруун гар — select (trigger) → хаалга + teleport
+controller.addEventListener("selectstart", () => {
+    // ... (одоо байгаа кодоо хэвээр үлдээнэ)
+});
+
+// ✅ Зүүн гар — squeeze (grip) → teleport confirm
+controller1.addEventListener("selectstart", () => {
+    tempMatrix.identity().extractRotation(controller1.matrixWorld);
+    raycasterVR.ray.origin.setFromMatrixPosition(controller1.matrixWorld);
+    raycasterVR.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+
+    const activeRoom = room1.visible ? room1 : room2.visible ? room2 : room3;
+    const floorHits = raycasterVR.intersectObjects(
+        activeRoom.children.filter(c => c.userData?.teleport), false
+    );
+    if (floorHits.length > 0) {
+        teleportTarget = floorHits[0].point.clone();
+        teleportMarker.position.copy(teleportTarget);
+        teleportMarker.position.y += 0.01;
+        teleportMarker.visible = true;
+    }
+});
+
+controller1.addEventListener("selectend", () => {
+    if (teleportTarget) {
+        playerRig.position.set(teleportTarget.x, 0, teleportTarget.z);
+        teleportMarker.visible = false;
+        teleportTarget = null;
+    }
+});
 // ======================
 // VR RAYCAST
 // ======================
