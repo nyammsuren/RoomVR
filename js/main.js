@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { createRoom1 } from "./room1.js";
 import { createRoom2 } from "./room2.js";
-import { createRoom3 } from "./room3.js";   // ✅ шинэ лаборатори
+import { createRoom3 } from "./room3.js";
 
 // ======================
 // SCENE
@@ -56,7 +56,7 @@ scene.add(playerRig);
 // ======================
 const room1 = createRoom1(scene, camera, renderer);
 const room2 = createRoom2(scene, camera, renderer);
-const room3 = createRoom3(scene, camera, renderer);  // ✅ лаборатори
+const room3 = createRoom3(scene, camera, renderer);
 
 room2.visible = false;
 room3.visible = false;
@@ -75,12 +75,33 @@ window.goRoom = (n) => {
         camera.position.set(0, 1.6, 4);
         camera.lookAt(0, 0, 0);
     }
-    const names = { 1:'Room 1', 2:'Хичээлийн танхим', 3:'Лаборатори' };
+    const names = { 1: "Room 1", 2: "Хичээлийн танхим", 3: "Лаборатори" };
     console.log(`→ ${names[n]} руу шилжлээ`);
 };
 
 // ======================
-// VR CONTROLLER
+// VR RAYCAST ТУСЛАХ
+// ======================
+// ✅ Эхлээд тодорхойлно — controller listener-үүд доор ашиглана
+const tempMatrix  = new THREE.Matrix4();
+const raycasterVR = new THREE.Raycaster();
+
+// ======================
+// TELEPORT MARKER
+// ======================
+const teleportMarker = new THREE.Mesh(
+    new THREE.RingGeometry(0.15, 0.22, 32),
+    new THREE.MeshBasicMaterial({ color: 0x00ff88, side: THREE.DoubleSide })
+);
+teleportMarker.rotation.x = -Math.PI / 2;
+teleportMarker.visible = false;
+scene.add(teleportMarker);
+
+let teleportTarget = null;
+
+// ======================
+// БАРУУН ГАР (controller 0)
+// Үүрэг: хаалга шилжих + шал дарахад teleport
 // ======================
 const controller = renderer.xr.getController(0);
 scene.add(controller);
@@ -95,67 +116,6 @@ const laserLine = new THREE.Line(
 );
 laserLine.scale.z = 15;
 controller.add(laserLine);
-// ✅ Controller 1 (зүүн гар) — locomotion
-const controller1 = renderer.xr.getController(1);
-scene.add(controller1);
-
-const laserGeo1 = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(0, 0, -1)
-]);
-const laserLine1 = new THREE.Line(
-    laserGeo1,
-    new THREE.LineBasicMaterial({ color: 0xffaa00 })
-);
-laserLine1.scale.z = 10;
-controller1.add(laserLine1);
-
-// ✅ Teleport marker
-const teleportMarker = new THREE.Mesh(
-    new THREE.RingGeometry(0.15, 0.22, 32),
-    new THREE.MeshBasicMaterial({ color: 0x00ff88, side: THREE.DoubleSide })
-);
-teleportMarker.rotation.x = -Math.PI / 2;
-teleportMarker.visible = false;
-scene.add(teleportMarker);
-
-let teleportTarget = null;
-
-// ✅ Баруун гар — select (trigger) → хаалга + teleport
-controller.addEventListener("selectstart", () => {
-    // ... (одоо байгаа кодоо хэвээр үлдээнэ)
-});
-
-// ✅ Зүүн гар — squeeze (grip) → teleport confirm
-controller1.addEventListener("selectstart", () => {
-    tempMatrix.identity().extractRotation(controller1.matrixWorld);
-    raycasterVR.ray.origin.setFromMatrixPosition(controller1.matrixWorld);
-    raycasterVR.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-
-    const activeRoom = room1.visible ? room1 : room2.visible ? room2 : room3;
-    const floorHits = raycasterVR.intersectObjects(
-        activeRoom.children.filter(c => c.userData?.teleport), false
-    );
-    if (floorHits.length > 0) {
-        teleportTarget = floorHits[0].point.clone();
-        teleportMarker.position.copy(teleportTarget);
-        teleportMarker.position.y += 0.01;
-        teleportMarker.visible = true;
-    }
-});
-
-controller1.addEventListener("selectend", () => {
-    if (teleportTarget) {
-        playerRig.position.set(teleportTarget.x, 0, teleportTarget.z);
-        teleportMarker.visible = false;
-        teleportTarget = null;
-    }
-});
-// ======================
-// VR RAYCAST
-// ======================
-const tempMatrix = new THREE.Matrix4();
-const raycasterVR = new THREE.Raycaster();
 
 controller.addEventListener("selectstart", () => {
     tempMatrix.identity().extractRotation(controller.matrixWorld);
@@ -166,38 +126,82 @@ controller.addEventListener("selectstart", () => {
     const hits = raycasterVR.intersectObjects(activeRoom.children, true);
     if (!hits.length) return;
 
+    // userData.kind шалгах — parent chain дагна
     let obj = hits[0].object;
     while (obj) {
         if (obj.userData?.kind) break;
         obj = obj.parent;
     }
-    if (!obj?.userData?.kind) return;
 
-    const kind = obj.userData.kind;
-    if (kind === "door")         { window.goRoom(2); return; }
-    if (kind === "labDoor")      { window.goRoom(3); return; }  // ✅ room2 → room3
-    if (kind === "backDoor") {
-        if (room2.visible) window.goRoom(1);
-        if (room3.visible) window.goRoom(2);
-        return;
+    if (obj?.userData?.kind) {
+        const kind = obj.userData.kind;
+        if (kind === "door")     { window.goRoom(2); return; }
+        if (kind === "labDoor")  { window.goRoom(3); return; }
+        if (kind === "backDoor") {
+            if (room2.visible) window.goRoom(1);
+            if (room3.visible) window.goRoom(2);
+            return;
+        }
+        if (kind === "teacherChair") {
+            playerRig.position.set(-3, 0, 4.22);
+            return;
+        }
+        if (kind === "tv") {
+            room2.userData.toggleVideo?.();
+            return;
+        }
     }
-    if (kind === "teacherChair") {
-        if (renderer.xr.isPresenting) playerRig.position.set(-3, 0, 4.22);
-        else camera.position.set(-3, 1.2, 4.22);
-        return;
+
+    // ✅ Шал дарвал teleport aim — зүүн гараар confirm хийнэ
+    const floorHits = raycasterVR.intersectObjects(
+        activeRoom.children.filter(c => c.userData?.teleport), false
+    );
+    if (floorHits.length > 0) {
+        teleportTarget = floorHits[0].point.clone();
+        teleportMarker.position.set(teleportTarget.x, teleportTarget.y + 0.01, teleportTarget.z);
+        teleportMarker.visible = true;
     }
-    if (kind === "tv")           { room2.userData.toggleVideo?.(); return; }
-    if (obj.userData?.teleport) {
-        const point = hits[0].point;
-        if (renderer.xr.isPresenting) playerRig.position.set(point.x, 0, point.z);
-        else camera.position.set(point.x, 1.6, point.z);
+
+    // room3 дотор node дарах — кабель холболт
+    if (room3.visible) {
+        const rc = new THREE.Raycaster();
+        rc.ray.origin.copy(raycasterVR.ray.origin);
+        rc.ray.direction.copy(raycasterVR.ray.direction);
+        room3.userData.onVRSelect?.(rc);
+    }
+});
+
+controller.addEventListener("selectend", () => {
+    // ✅ Trigger суллахад teleport биелнэ
+    if (teleportTarget) {
+        playerRig.position.set(teleportTarget.x, 0, teleportTarget.z);
+        teleportMarker.visible = false;
+        teleportTarget = null;
     }
 });
 
 // ======================
-// MOUSE CLICK
+// ЗҮҮН ГАР (controller 1)
+// Үүрэг: smooth locomotion (joystick) + aim laser
 // ======================
-const mouse = new THREE.Vector2();
+const controller1 = renderer.xr.getController(1);
+scene.add(controller1);
+
+const laserGeo1 = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0, -1)
+]);
+const laserLine1 = new THREE.Line(
+    laserGeo1,
+    new THREE.LineBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.6 })
+);
+laserLine1.scale.z = 10;
+controller1.add(laserLine1);
+
+// ======================
+// MOUSE CLICK (desktop)
+// ======================
+const mouse         = new THREE.Vector2();
 const raycasterMouse = new THREE.Raycaster();
 
 window.addEventListener("click", (event) => {
@@ -217,8 +221,8 @@ window.addEventListener("click", (event) => {
 
     if (obj?.userData?.kind) {
         const kind = obj.userData.kind;
-        if (kind === "door")         { window.goRoom(2); return; }
-        if (kind === "labDoor")      { window.goRoom(3); return; }
+        if (kind === "door")     { window.goRoom(2); return; }
+        if (kind === "labDoor")  { window.goRoom(3); return; }
         if (kind === "backDoor") {
             if (room2.visible) window.goRoom(1);
             if (room3.visible) window.goRoom(2);
@@ -228,7 +232,6 @@ window.addEventListener("click", (event) => {
         if (kind === "tv")           { room2.userData.toggleVideo?.(); return; }
     }
 
-    // room3 дотор node click (кабель холболт)
     if (room3.visible) room3.userData.onClick?.(raycasterMouse);
 });
 
@@ -249,12 +252,50 @@ window.addEventListener("resize", () => {
 });
 
 // ======================
+// VR SMOOTH LOCOMOTION
+// Зүүн гарын joystick (axes[2], axes[3]) — бүх өрөөнд ажиллана
+// ======================
+const _loco = { active: false };
+
+function handleLocomotion() {
+    if (!renderer.xr.isPresenting) return;
+    const session = renderer.xr.getSession();
+    if (!session) return;
+
+    session.inputSources.forEach(src => {
+        if (src.handedness !== "left") return;
+        const gp = src.gamepad;
+        if (!gp) return;
+
+        const ax = gp.axes[2] ?? 0;
+        const ay = gp.axes[3] ?? 0;
+        if (Math.abs(ax) < 0.12 && Math.abs(ay) < 0.12) return;
+
+        const speed = 0.035;
+        const dir   = new THREE.Vector3();
+        camera.getWorldDirection(dir);
+        dir.y = 0;
+        dir.normalize();
+        const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0));
+
+        playerRig.position.addScaledVector(dir,  -ay * speed);
+        playerRig.position.addScaledVector(right,  ax * speed);
+    });
+}
+
+// ======================
 // ANIMATION LOOP
 // ======================
 renderer.setAnimationLoop(() => {
     const delta = clock.getDelta();
+
+    // ✅ Smooth locomotion — бүх өрөөнд
+    handleLocomotion();
+
+    // ✅ playerRig-ийг бүх update-д дамжуулна
     if (room1.visible) room1.userData.update?.(delta, playerRig);
-    if (room2.visible) room2.userData.update?.();
+    if (room2.visible) room2.userData.update?.(delta, playerRig);  // ✅ playerRig нэмэгдсэн
     if (room3.visible) room3.userData.update?.(delta, playerRig);
+
     renderer.render(scene, camera);
 });
