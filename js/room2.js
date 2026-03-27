@@ -309,7 +309,7 @@ export function createRoom2(scene, camera, renderer) {
     // ✅ ./view.mp4 = js/ фолдер (main.js-тэй нэг газар)
     // Хэрэв root-д байвал "../view.mp4" болгоно
     
-["../view.mp4", "../view.webm"].forEach(src => {
+["./view.mp4", "./view.webm"].forEach(src => {
     const s = document.createElement("source");
     s.src = src;
     vid.appendChild(s);
