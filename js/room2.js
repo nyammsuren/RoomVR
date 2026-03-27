@@ -375,17 +375,22 @@ vid.load(); // ← ЭНЭ МӨРИЙГ НЭМЭХ
     });
 
     // ✅ toggleVideo — алдаагүй, videoReady шалгана
-    room.userData.toggleVideo = () => {
-        if (!videoReady) {
-            console.warn("room2: видео бэлэн болоогүй байна");
-            return;
-        }
+ room.userData.toggleVideo = () => {
+    if (vid.readyState >= 2) {
+        // Бэлэн байвал тоглуул/зогсоо
         if (vid.paused) {
             vid.play().catch(() => {});
         } else {
             vid.pause();
         }
-    };
+    } else {
+        // Бэлэн болоогүй бол load хийгээд тоглуул
+        vid.load();
+        vid.addEventListener("canplay", () => {
+            vid.play().catch(() => {});
+        }, { once: true });
+    }
+};
 
     const ledBar = new THREE.Mesh(
         new THREE.BoxGeometry(2.4, 0.04, 0.04),
