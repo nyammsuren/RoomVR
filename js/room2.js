@@ -305,8 +305,8 @@ vid.muted = true;
 vid.playsInline = true;
 vid.style.display = "none";
 
-const mp4Url = new URL("./js/view.mp4", import.meta.url).href;
-const webmUrl = new URL("./js/view.webm", import.meta.url).href;
+const mp4Url = new URL("./view.mp4", import.meta.url).href;
+const webmUrl = new URL("./view.webm", import.meta.url).href;
 
 [mp4Url, webmUrl].forEach(src => {
     const s = document.createElement("source");
