@@ -299,23 +299,23 @@ export function createRoom2(scene, camera, renderer) {
     tvG.add(tvFrame);
 
     // ✅ Видео элемент — олон format, зөв зам
-    const vid = document.createElement("video");
-    vid.loop        = true;
-    vid.muted       = true;
-    vid.playsInline = true;
+   const vid = document.createElement("video");
+vid.loop = true;
+vid.muted = true;
+vid.playsInline = true;
+vid.style.display = "none";
 
-    vid.style.display = "none";
+const mp4Url = new URL("./view.mp4", import.meta.url).href;
+const webmUrl = new URL("./view.webm", import.meta.url).href;
 
-    // ✅ ./view.mp4 = js/ фолдер (main.js-тэй нэг газар)
-    // Хэрэв root-д байвал "../view.mp4" болгоно
-    
-["./view.mp4", "./view.webm"].forEach(src => {
+[mp4Url, webmUrl].forEach(src => {
     const s = document.createElement("source");
     s.src = src;
     vid.appendChild(s);
 });
+
 document.body.appendChild(vid);
-vid.load(); // ← ЭНЭ МӨРИЙГ НЭМЭХ
+vid.load();
 
     // ✅ Fallback canvas — видео байхгүй үед харуулна
     const fallbackCanvas = document.createElement("canvas");
