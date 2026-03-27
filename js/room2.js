@@ -308,12 +308,14 @@ export function createRoom2(scene, camera, renderer) {
 
     // ✅ ./view.mp4 = js/ фолдер (main.js-тэй нэг газар)
     // Хэрэв root-д байвал "../view.mp4" болгоно
-    ["./view.mp4", "./view.webm"].forEach(src => {
-        const s = document.createElement("source");
-        s.src = src;
-        vid.appendChild(s);
-    });
-    document.body.appendChild(vid);
+    
+["../view.mp4", "../view.webm"].forEach(src => {
+    const s = document.createElement("source");
+    s.src = src;
+    vid.appendChild(s);
+});
+document.body.appendChild(vid);
+vid.load(); // ← ЭНЭ МӨРИЙГ НЭМЭХ
 
     // ✅ Fallback canvas — видео байхгүй үед харуулна
     const fallbackCanvas = document.createElement("canvas");
