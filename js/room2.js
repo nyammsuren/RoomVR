@@ -303,7 +303,7 @@ export function createRoom2(scene, camera, renderer) {
     vid.loop        = true;
     vid.muted       = true;
     vid.playsInline = true;
-    vid.crossOrigin = "anonymous";
+
     vid.style.display = "none";
 
     // ✅ ./view.mp4 = js/ фолдер (main.js-тэй нэг газар)
