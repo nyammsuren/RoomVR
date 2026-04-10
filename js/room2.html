@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<title>3D Өрөө – TV Видео</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{width:100%;height:100%;background:#0b0f1a;font-family:'Segoe UI',Arial,sans-serif;overflow:hidden;}
+  #info{position:fixed;top:12px;left:12px;color:#6b7ea8;font-size:11px;
+    background:rgba(0,0,0,0.5);padding:6px 12px;border-radius:8px;line-height:1.8;}
+  #info b{color:#63a0ff;}
+  #controls{
+    position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+    z-index:20;display:flex;gap:10px;align-items:center;
+    background:rgba(0,0,0,0.75);padding:8px 16px;border-radius:30px;
+    border:1px solid rgba(255,255,255,0.1);
+  }
+  .ctrl-btn{
+    background:none;border:1px solid rgba(255,255,255,0.2);color:#fff;
+    width:36px;height:36px;border-radius:50%;font-size:15px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:all .2s;
+  }
+  .ctrl-btn:hover{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.4);}
+  #vol-slider{-webkit-appearance:none;width:90px;height:3px;border-radius:2px;
+    background:rgba(255,255,255,0.25);outline:none;cursor:pointer;}
+  #vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;
+    border-radius:50%;background:#63a0ff;cursor:pointer;}
+  #progress-wrap{width:120px;height:3px;background:rgba(255,255,255,0.15);
+    border-radius:2px;cursor:pointer;}
+  #progress-bar{height:100%;background:#63a0ff;border-radius:2px;width:0%;}
+</style>
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════════╗ -->
+<!-- ║  ЭНД ВИДЕО ФАЙЛЫН ЗАМАА БИЧНЭ ҮҮ   ║ -->
+<!-- ╚══════════════════════════════════════╝ -->
+<video id="vid" loop autoplay muted playsinline style="display:none;"
+  src="view.mp4">
+
+</video>
+
+<div id="info">
+  <b>🖱</b> Хулгана: эргүүлэх &nbsp;|&nbsp; <b>🔍</b> Scroll: zoom
+</div>
+
+<div id="controls">
+  <button class="ctrl-btn" id="btn-play">⏸</button>
+  <button class="ctrl-btn" id="btn-mute">🔊</button>
+  <input type="range" id="vol-slider" min="0" max="1" step="0.02" value="1">
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ════════════════════════════════
+//  VIDEO CONTROLS
+// ════════════════════════════════
+const vid = document.getElementById('vid');
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (vid.paused) { vid.play(); document.getElementById('btn-play').textContent='⏸'; }
+  else            { vid.pause(); document.getElementById('btn-play').textContent='▶'; }
+});
+document.getElementById('btn-mute').addEventListener('click', () => {
+  vid.muted = !vid.muted;
+  document.getElementById('btn-mute').textContent = vid.muted ? '🔇' : '🔊';
+});
+document.getElementById('vol-slider').addEventListener('input', e => {
+  vid.volume = parseFloat(e.target.value);
+});
+vid.addEventListener('timeupdate', () => {
+  if (!vid.duration) return;
+  document.getElementById('progress-bar').style.width =
+    (vid.currentTime / vid.duration * 100) + '%';
+});
+document.getElementById('progress-wrap').addEventListener('click', e => {
+  if (!vid.duration) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  vid.currentTime = (e.clientX - r.left) / r.width * vid.duration;
+});
+
+// ════════════════════════════════
+//  THREE.JS SCENE
+// ════════════════════════════════
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+const scene  = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+scene.fog = new THREE.Fog(0x1a1a2e, 22, 42);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 5, 10);
+camera.lookAt(0, 1.5, 0);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+sun.position.set(4,10,6); sun.castShadow=true; scene.add(sun);
+
+const RW=10, RH=5, RD=10;
+function M(color, rough=0.8, metal=0) {
+  return new THREE.MeshStandardMaterial({ color, roughness:rough, metalness:metal });
+}
+
+// ── ШАЛ ──
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(RW,RD), M(0x8b7355,0.9));
+floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+for(let i=-4;i<=4;i++){
+  let g=new THREE.Mesh(new THREE.PlaneGeometry(0.02,RD),new THREE.MeshStandardMaterial({color:0x6b5535}));
+  g.rotation.x=-Math.PI/2; g.position.set(i,0.001,0); scene.add(g);
+  g=new THREE.Mesh(new THREE.PlaneGeometry(RW,0.02),new THREE.MeshStandardMaterial({color:0x6b5535}));
+  g.rotation.x=-Math.PI/2; g.position.set(0,0.001,i); scene.add(g);
+}
+
+// ── ХАНУУД ──
+const WM = M(0xd4c9b0,0.9);
+function wall(w,h,pos,ry=0){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),WM.clone());
+  m.position.set(...pos); m.rotation.y=ry; m.receiveShadow=true; scene.add(m);
+}
+wall(RW,RH, [0,RH/2,-RD/2]);
+wall(RW,RH, [0,RH/2, RD/2], Math.PI);
+wall(RD,RH, [-RW/2,RH/2,0],  Math.PI/2);
+wall(RD,RH, [ RW/2,RH/2,0], -Math.PI/2);
+const ceil=new THREE.Mesh(new THREE.PlaneGeometry(RW,RD),M(0xf0ece0,0.9));
+ceil.rotation.x=Math.PI/2; ceil.position.set(0,RH,0); scene.add(ceil);
+
+// ── ШИРЭЭ + САНДАЛ ──
+function addDesk(x,z){
+  const dm=M(0x8B6914,.7), lm=M(0x333333,.5,.3);
+  [[x,.75,z,1,.05,.6],[x,.48,z+.55,.5,.04,.45],[x,.7,z+.77,.5,.4,.04]].forEach(([px,py,pz,w,h,d])=>{
+    const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),dm);
+    mesh.position.set(px,py,pz); mesh.castShadow=mesh.receiveShadow=true; scene.add(mesh);
+  });
+  [[.4,.4],[.4,-.4],[-.4,.4],[-.4,-.4]].forEach(([dx,dz])=>{
+    const l=new THREE.Mesh(new THREE.BoxGeometry(.05,.75,.05),lm);
+    l.position.set(x+dx,.375,z+dz); l.castShadow=true; scene.add(l);
+  });
+  [[.2,-.2],[-.2,-.2]].forEach(([dx,dz])=>{
+    const s=new THREE.Mesh(new THREE.BoxGeometry(.04,.48,.04),lm);
+    s.position.set(x+dx,.24,z+.55+dz); scene.add(s);
+  });
+}
+[[-2,1],[-2,-1],[-2,-3],[0,1],[0,-1],[0,-3],[2,1],[2,-1],[2,-3]].forEach(([x,z])=>addDesk(x,z));
+
+// Багшийн ширээ
+const td=new THREE.Mesh(new THREE.BoxGeometry(2,.07,.8),M(0x6B4C11,.6));
+td.position.set(-3,.78,3.5); td.castShadow=td.receiveShadow=true; scene.add(td);
+[[.8,.3],[-.8,.3],[.8,-.3],[-.8,-.3]].forEach(([dx,dz])=>{
+  const l=new THREE.Mesh(new THREE.BoxGeometry(.07,.78,.07),M(0x222222,.4,.4));
+  l.position.set(-3+dx,.39,3.5+dz); l.castShadow=true; scene.add(l);
+});
+
+// ── 📺 TV — арын хана дээр ──
+const tvG = new THREE.Group();
+
+tvG.add(Object.assign(
+  new THREE.Mesh(new THREE.BoxGeometry(2.6,1.55,.1), M(0x111111,.2,.7)),
+  {castShadow:true}
+));
+
+// ── VIDEO TEXTURE ──
+const videoTex = new THREE.VideoTexture(vid);
+videoTex.minFilter = THREE.LinearFilter;
+videoTex.magFilter = THREE.LinearFilter;
+
+const tvScreenMat = new THREE.MeshBasicMaterial({ map: videoTex });
+const tvScreen = new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.35), tvScreenMat);
+tvScreen.position.z = .052;
+tvG.add(tvScreen);
+
+// LED зураас
+const ledBar = new THREE.Mesh(
+  new THREE.BoxGeometry(2.4,.04,.04),
+  new THREE.MeshStandardMaterial({color:0x1a88ff,emissive:0x1a88ff,emissiveIntensity:1.5})
+);
+ledBar.position.set(0,-.76,.055); tvG.add(ledBar);
+
+// Тулгуур
+const stM=M(0x1a1a1a,.3,.6);
+const tvSt=new THREE.Mesh(new THREE.BoxGeometry(.12,.32,.12),stM);
+tvSt.position.set(0,-.93,0); tvG.add(tvSt);
+const tvBs=new THREE.Mesh(new THREE.BoxGeometry(.7,.05,.28),stM);
+tvBs.position.set(0,-1.09,0); tvG.add(tvBs);
+
+tvG.position.set(0, 2.3, -RD/2+.06);
+scene.add(tvG);
+
+const tvLight=new THREE.PointLight(0x3366ff,2.0,6);
+tvLight.position.set(0,2.3,-RD/2+.9);
+scene.add(tvLight);
+
+// ── 🚪 ХААЛГА ──
+const dg=new THREE.Group();
+const fm=M(0x5c3d1e,.6);
+[[.05,1.05,0,.1,2.1,.15],[-.9,1.05,0,.1,2.1,.15],[-.425,2.15,0,.95,.1,.15]].forEach(([x,y,z,w,h,d])=>{
+  const f=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),fm); f.position.set(x,y,z); dg.add(f);
+});
+const dp=new THREE.Mesh(new THREE.BoxGeometry(.85,2,.07),M(0x8B5E3C,.5));
+dp.position.set(-.425,1,0); dg.add(dp);
+[1.5,.5].forEach(y=>{
+  const dc=new THREE.Mesh(new THREE.BoxGeometry(.7,.8,.02),M(0x7a5230,.5));
+  dc.position.set(-.425,y,.045); dg.add(dc);
+});
+const hMat=new THREE.MeshStandardMaterial({color:0xd4af37,roughness:.1,metalness:.9});
+const hnd=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,.12,8),hMat);
+hnd.rotation.x=Math.PI/2; hnd.position.set(0,1,.05); dg.add(hnd);
+dg.position.set(-RW/2+.08,0,-1); dg.rotation.y=Math.PI/2; scene.add(dg);
+
+// ── 💡 ТААЗНЫ ГЭРЭЛ ──
+function addCeilingLight(x,z){
+  const g=new THREE.Group();
+  g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(.6,.08,.6),M(0xeeeeee,.4)),{castShadow:true}));
+  const p=new THREE.Mesh(new THREE.BoxGeometry(.52,.02,.52),
+    new THREE.MeshStandardMaterial({color:0xfffde7,emissive:0xfffde7,emissiveIntensity:3}));
+  p.position.y=-.05; g.add(p);
+  g.position.set(x,RH-.04,z); scene.add(g);
+  const l=new THREE.PointLight(0xfffde7,2.5,8);
+  l.position.set(x,RH-.2,z); l.castShadow=true; scene.add(l);
+  return l;
+}
+const light1=addCeilingLight(-2,-1);
+const light2=addCeilingLight(2,-1);
+
+// ── КАМЕРЫН ХЯНАЛТ ──
+let drag=false, px=0, py=0, theta=0.3, phi=0.55, rad=10;
+renderer.domElement.addEventListener('mousedown',e=>{drag=true;px=e.clientX;py=e.clientY;});
+window.addEventListener('mouseup',()=>drag=false);
+window.addEventListener('mousemove',e=>{
+  if(!drag)return;
+  theta-=(e.clientX-px)*.008;
+  phi=Math.max(.08,Math.min(1.35,phi-(e.clientY-py)*.008));
+  px=e.clientX; py=e.clientY;
+});
+renderer.domElement.addEventListener('wheel',e=>{
+  rad=Math.max(3,Math.min(18,rad+e.deltaY*.01)); e.preventDefault();
+},{passive:false});
+let ltx=0,lty=0;
+renderer.domElement.addEventListener('touchstart',e=>{ltx=e.touches[0].clientX;lty=e.touches[0].clientY;});
+renderer.domElement.addEventListener('touchmove',e=>{
+  theta-=(e.touches[0].clientX-ltx)*.008;
+  phi=Math.max(.08,Math.min(1.35,phi-(e.touches[0].clientY-lty)*.008));
+  ltx=e.touches[0].clientX; lty=e.touches[0].clientY; e.preventDefault();
+},{passive:false});
+
+// ── АНИМЕЙШН ДАВТАЛТ ──
+let t=0;
+function animate(){
+  requestAnimationFrame(animate);
+  t+=.018;
+  camera.position.set(
+    rad*Math.sin(theta)*Math.cos(phi),
+    rad*Math.sin(phi)+1,
+    rad*Math.cos(theta)*Math.cos(phi)
+  );
+  camera.lookAt(0,1.5,0);
+
+  if(!vid.paused && !vid.ended) videoTex.needsUpdate=true;
+
+  tvLight.intensity  = 1.8+Math.sin(t*2.5)*.4;
+  ledBar.material.emissiveIntensity = 1.2+Math.sin(t*1.5)*.5;
+  light1.intensity   = 2.3+Math.sin(t*.5)*.2;
+  light2.intensity   = 2.3+Math.sin(t*.5+1)*.2;
+
+  renderer.render(scene,camera);
+}
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>
