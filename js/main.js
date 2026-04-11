@@ -160,8 +160,8 @@ portalDefs.forEach(({ rg, color, x, y, z, rotY }) => {
 let currentRoom = 0;
 let isSitting   = false;
 
-const camPos    = { 0:[0,1.6,4], 1:[0,1.6,4], 2:[0,1.6,4], 3:[0,1.6,4], 4:[0,1.6,0] };
-const camTarget = { 0:[0,1,-3],  1:[0,1,0],   2:[0,1,0],   3:[0,1,0],   4:[0,1,-2]  };
+const camPos    = { 0:[0,1.6,4], 1:[0,1.6,4], 2:[0,1.6,4], 3:[0,1.6,4], 4:[0,1.9,0] };
+const camTarget = { 0:[0,1,-3],  1:[0,1,0],   2:[0,1,0],   3:[0,1,0],   4:[0,1.9,-2]  };
 const roomNames = { 0:"Угтах танхим", 1:"Лекцийн танхим", 2:"Сүлжээний лаборатори",
                     3:"AR лаборатори", 4:"Компьютерийн лаборатори" };
 
@@ -247,6 +247,8 @@ function handleKind(kind, isVR) {
     if (kind === "toCompLab")  { window.goRoom(4); return true; }
     if (kind === "backDoor")   { window.goRoom(0); return true; }
     if (kind === "labDoor")    { window.goRoom(2); return true; }
+    if (kind === "welcomeAudio") { lobby.userData.toggleWelcome?.(); return true; }
+    if (kind === "roomAudio")    { roomMap[currentRoom].userData.toggleAudio?.(); return true; }
     if (kind === "teacherChair") {
         if (!isSitting) {
             isSitting = true;
@@ -263,7 +265,7 @@ function handleKind(kind, isVR) {
         }
         return true;
     }
-    if (kind === "tv") { lectureR.userData.toggleVideo?.(); return true; }
+    if (kind === "tv") { roomMap[currentRoom].userData.toggleVideo?.(); return true; }
     if (kind === "compTeacherChair") {
         if (!isSitting) {
             isSitting = true;
@@ -296,9 +298,15 @@ controller.addEventListener("selectstart", () => {
     while (obj) { if (obj.userData?.kind) break; obj = obj.parent; }
     if (!obj?.userData?.kind) return;
 
-    if (!handleKind(obj.userData.kind, true) && obj.userData?.teleport) {
-        const point = hits[0].point;
-        playerRig.position.set(point.x, 0, point.z);
+    if (!handleKind(obj.userData.kind, true)) {
+        if (currentRoom === 2) {
+            netLabR.userData.onClick?.(raycasterVR);
+        } else if (currentRoom === 3) {
+            arLabR.userData.onClick?.(raycasterVR);
+        } else if (obj.userData?.teleport) {
+            const point = hits[0].point;
+            playerRig.position.set(point.x, 0, point.z);
+        }
     }
 });
 
@@ -325,6 +333,7 @@ window.addEventListener("click", (event) => {
     }
 
     if (currentRoom === 2) netLabR.userData.onClick?.(raycasterMouse);
+    if (currentRoom === 3) arLabR.userData.onClick?.(raycasterMouse);
 });
 
 // ======================
@@ -352,13 +361,12 @@ renderer.setAnimationLoop(() => {
 
     allPortals.forEach(p => p.userData.update?.(t));
 
-    lobby.userData.update?.();
-    if (currentRoom === 1) lectureR.userData.update?.();
-    if (currentRoom === 2) netLabR.userData.update?.(delta, playerRig);
-    if (currentRoom === 3) arLabR.userData.update?.();
-    if (currentRoom === 4) compLabR.userData.update?.();
+    lobby.userData.update?.(camera);
+    if (currentRoom === 1) lectureR.userData.update?.(camera);
+    if (currentRoom === 2) netLabR.userData.update?.(delta, camera);
+    if (currentRoom === 3) arLabR.userData.update?.(camera);
+    if (currentRoom === 4) compLabR.userData.update?.(camera);
 
-    checkPortalProximity();
     if (!renderer.xr.isPresenting) controls.update();
     renderer.render(scene, camera);
 });

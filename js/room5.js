@@ -202,24 +202,29 @@ export function createRoom5(scene) {
             room.add(leg);
         });
 
-        // Монитор хүрээ
-        const mon = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.28, 0.022), pm);
-        mon.position.set(x, 1.02, z - 0.1);
+        // Монитор хүрээ — сүлжээний лабтай адил том
+        const mon = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.42, 0.022), pm);
+        mon.position.set(x, 1.145, z - 0.1);
         mon.castShadow = true;
         room.add(mon);
 
         // Дэлгэц — "Дадлага ажил"
         const scr = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.38, 0.22),
+            new THREE.PlaneGeometry(0.55, 0.36),
             new THREE.MeshBasicMaterial({ map: stuScrTex })
         );
-        scr.position.set(x, 1.02, z - 0.088);
+        scr.position.set(x, 1.145, z - 0.088);
         room.add(scr);
 
         // Монитор зогдол
-        const stand = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.04), pm);
-        stand.position.set(x, 0.80, z - 0.1);
+        const stand = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.14, 0.04), pm);
+        stand.position.set(x, 0.865, z - 0.1);
         room.add(stand);
+
+        // Монитор суурь
+        const mbase = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.014, 0.12), pm);
+        mbase.position.set(x, 0.802, z - 0.1);
+        room.add(mbase);
 
         // Гар
         const kbd = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.01, 0.12), mat(0x2a2a2a, 0.5));
@@ -243,7 +248,7 @@ export function createRoom5(scene) {
 
         // Дэлгэцний гэрэл
         const l = new THREE.PointLight(0x2255ff, 0.3, 1.2);
-        l.position.set(x, 1.1, z + 0.1);
+        l.position.set(x, 1.25, z + 0.1);
         room.add(l);
 
         // СУРАГЧИЙН САНДАЛ
@@ -404,37 +409,25 @@ export function createRoom5(scene) {
     tvFrm.castShadow = true;
     room.add(tvFrm);
 
-    // TV дэлгэц — багшийн мониторын ижил агуулга
-    const tvScrCvs = document.createElement("canvas");
-    tvScrCvs.width = 512; tvScrCvs.height = 320;
-    const tvc = tvScrCvs.getContext("2d");
-    tvc.fillStyle = "#0a1628";
-    tvc.fillRect(0, 0, 512, 320);
-    tvc.fillStyle = "#1a4080";
-    tvc.fillRect(0, 0, 512, 72);
-    tvc.fillStyle = "#ffffff";
-    tvc.font = "bold 30px Arial";
-    tvc.textAlign = "center";
-    tvc.textBaseline = "middle";
-    tvc.fillText("Лаборатори 1", 256, 26);
-    tvc.font = "bold 26px Arial";
-    tvc.fillStyle = "#aad4ff";
-    tvc.fillText("Свич түүний тохиргоо", 256, 56);
-    tvc.strokeStyle = "#3377cc";
-    tvc.lineWidth = 1.5;
-    tvc.beginPath(); tvc.moveTo(20, 76); tvc.lineTo(492, 76); tvc.stroke();
-    tvc.fillStyle = "#ddeeff";
-    tvc.font = "17px Arial";
-    tvc.textAlign = "left";
-    ["• enable", "• configure terminal", "• interface fa0/1", "• switchport mode access"].forEach((t, i) => {
-        tvc.fillText(t, 24, 106 + i * 48);
-    });
+    // TV дэлгэц — lab.mp4 видео, дарах үед тоглох/зогсоох
+    const tvVid = document.createElement("video");
+    tvVid.src = "./js/lab.mp4";
+    tvVid.loop = true;
+    tvVid.muted = false;
+    tvVid.playsInline = true;
+    const tvVidTex = new THREE.VideoTexture(tvVid);
     const tvScr = new THREE.Mesh(
         new THREE.PlaneGeometry(1.44, 0.80),
-        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(tvScrCvs) })
+        new THREE.MeshBasicMaterial({ map: tvVidTex })
     );
     tvScr.position.set(3.0, 2.1, -RD / 2 + 0.11);
+    tvScr.userData = { kind: "tv" };
     room.add(tvScr);
+
+    room.userData.toggleVideo = () => {
+        if (tvVid.paused) tvVid.play().catch(e => console.warn("TV play:", e));
+        else tvVid.pause();
+    };
 
     const tvLed = new THREE.Mesh(
         new THREE.BoxGeometry(1.44, 0.025, 0.03),
@@ -518,10 +511,12 @@ export function createRoom5(scene) {
     dlc.fillText("Босох", 128, 64);
     const deskLbl = new THREE.Mesh(
         new THREE.PlaneGeometry(0.5, 0.25),
-        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(deskLblCvs), transparent: true })
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(deskLblCvs), transparent: true, side: THREE.DoubleSide })
     );
-    deskLbl.rotation.x = -Math.PI / 2;
-    deskLbl.position.set(-3, 0.818, -4.0);
+    // Ширээний ар ирмэгт (багшийн тал) босоо байрлуулав — VR удирдлагаар дарагдана
+    deskLbl.position.set(-3, 0.92, -4.38);
+    deskLbl.rotation.y = Math.PI;
+    deskLbl.userData = { kind: "compTeacherDesk" };
     room.add(deskLbl);
 
     // Ширээний хөл
@@ -659,9 +654,52 @@ export function createRoom5(scene) {
     lblMesh.rotation.y = -Math.PI / 2;
     room.add(lblMesh);
 
-    room.userData.update = () => {
+    // ======================
+    // МУБСИ БААВГАЙ — багшийн ширээний ард (x=-3, z=-4.65)
+    // ======================
+    let bearGroup5 = null;
+    new THREE.TextureLoader().load("./assets/model.png", (tex) => {
+        const aspect = tex.image.width / tex.image.height;
+        const h = 1.9;
+        const w = h * aspect;
+
+        bearGroup5 = new THREE.Group();
+        bearGroup5.position.set(-3, h / 2, -4.65);
+        room.add(bearGroup5);
+
+        const bearPlane5 = new THREE.Mesh(
+            new THREE.PlaneGeometry(w, h),
+            new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.1 })
+        );
+        bearPlane5.userData = { kind: "roomAudio" };
+        bearGroup5.add(bearPlane5);
+
+        const shadow = new THREE.Mesh(
+            new THREE.CircleGeometry(w * 0.3, 32),
+            new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.15 })
+        );
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.position.set(-3, 0.01, -4.65);
+        room.add(shadow);
+    });
+
+    // АУДИО
+    const roomAudio5 = new Audio("./assets/room5.m4a");
+    roomAudio5.loop = false;
+    room.userData.toggleAudio = () => {
+        if (roomAudio5.paused) { roomAudio5.currentTime = 0; roomAudio5.play(); }
+        else { roomAudio5.pause(); }
+    };
+
+    room.userData.update = (camera) => {
         const t = performance.now() * 0.001;
         backDoor.material.opacity = 0.65 + 0.2 * Math.sin(t * 1.8);
+        if (bearGroup5 && camera) {
+            bearGroup5.rotation.y = Math.atan2(
+                camera.position.x - bearGroup5.position.x,
+                camera.position.z - bearGroup5.position.z
+            );
+        }
     };
 
     return room;

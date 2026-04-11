@@ -13,8 +13,8 @@ export function createRoom3(scene, camera, renderer) {
     // ======================
     // ГЭРЭЛ
     // ======================
-    room.add(new THREE.AmbientLight(0xffffff, 0.45));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.7);
+    room.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(4, 10, 6);
     dir.castShadow = true;
     room.add(dir);
@@ -40,7 +40,7 @@ export function createRoom3(scene, camera, renderer) {
     // ======================
     // ХАНУУД
     // ======================
-    const wallMat = mat(0x1a1c2e, 0.9);
+    const wallMat = mat(0xf0f0f0, 0.9);
     [
         [RW, RH, [0, RH/2, -RD/2], 0],
         [RW, RH, [0, RH/2,  RD/2], Math.PI],
@@ -52,7 +52,7 @@ export function createRoom3(scene, camera, renderer) {
         room.add(m);
     });
 
-    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), mat(0x111220, 0.9));
+    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), mat(0xf0f0f0, 0.9));
     ceil.rotation.x = Math.PI / 2;
     ceil.position.set(0, RH, 0);
     room.add(ceil);
@@ -67,7 +67,7 @@ export function createRoom3(scene, camera, renderer) {
         );
         panel.position.set(x, RH - 0.03, z);
         room.add(panel);
-        const l = new THREE.PointLight(0xfffde7, 2.0, 8);
+        const l = new THREE.PointLight(0xfffde7, 2.2, 9);
         l.position.set(x, RH - 0.2, z);
         l.castShadow = true;
         room.add(l);
@@ -88,7 +88,8 @@ export function createRoom3(scene, camera, renderer) {
         new THREE.PlaneGeometry(5, 0.6),
         new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(titleCvs), transparent: true })
     );
-    titleMesh.position.set(0, 4.3, -RD/2 + 0.05);
+    titleMesh.position.set(RW/2 - 0.05, 3.8, 0);
+    titleMesh.rotation.y = -Math.PI / 2;
     room.add(titleMesh);
 
     // ======================
@@ -263,21 +264,7 @@ export function createRoom3(scene, camera, renderer) {
         cableGlowLights.push(gl);
     });
 
-    // Заавар бичиг — кабелийн дээр
-    const instrCvs = document.createElement('canvas');
-    instrCvs.width = 1024; instrCvs.height = 72;
-    const ic = instrCvs.getContext('2d');
-    ic.clearRect(0, 0, 1024, 72);
-    ic.fillStyle = '#7799cc';
-    ic.font = 'bold 34px Arial';
-    ic.textAlign = 'center'; ic.textBaseline = 'middle';
-    ic.fillText('1. Кабель сонгоно уу  →  2. Эхний төхөөрөмж дарна  →  3. Хоёр дахь төхөөрөмж дарна', 512, 36);
-    const instrMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(9.6, 0.36),
-        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(instrCvs), transparent: true })
-    );
-    instrMesh.position.set(0, 3.7, -RD/2 + 0.05);
-    room.add(instrMesh);
+    // Заавар бичиг компьютерийн дэлгэцэнд харагдана (хананаас устгав)
 
     // ======================
     // ШИРЭЭНҮҮД
@@ -289,8 +276,9 @@ export function createRoom3(scene, camera, renderer) {
     netTbl.position.set(0, TY, -2.2);
     room.add(netTbl);
     [[-4.4,-2.62],[4.4,-2.62],[-4.4,-1.78],[4.4,-1.78]].forEach(([x,z]) => {
-        const l = new THREE.Mesh(new THREE.BoxGeometry(0.08, TY*2, 0.08), mat(0x222222, 0.5));
-        l.position.set(x, TY/2, z);
+        const legH = TY - 0.03;
+        const l = new THREE.Mesh(new THREE.BoxGeometry(0.08, legH, 0.08), mat(0x222222, 0.5));
+        l.position.set(x, legH / 2, z);
         room.add(l);
     });
 
@@ -300,8 +288,9 @@ export function createRoom3(scene, camera, renderer) {
         t.position.set(tx, TY, tz);
         room.add(t);
         [[0.64,0.36],[0.64,-0.36],[-0.64,0.36],[-0.64,-0.36]].forEach(([dx,dz]) => {
-            const l = new THREE.Mesh(new THREE.BoxGeometry(0.07, TY*2, 0.07), mat(0x222222, 0.5));
-            l.position.set(tx+dx, TY/2, tz+dz);
+            const legH = TY - 0.03;
+            const l = new THREE.Mesh(new THREE.BoxGeometry(0.07, legH, 0.07), mat(0x222222, 0.5));
+            l.position.set(tx+dx, legH / 2, tz+dz);
             room.add(l);
         });
     });
@@ -319,6 +308,7 @@ export function createRoom3(scene, camera, renderer) {
     ];
 
     const deviceObjects = [];
+    const pcScrTexs = []; // PC дэлгэцийн texture-үүд — renderStatus үүнийг шинэчилнэ
 
     DEVICE_DEFS.forEach(def => {
         const g = new THREE.Group();
@@ -378,34 +368,45 @@ export function createRoom3(scene, camera, renderer) {
             g.position.set(def.x, TY + 0.029, def.z);
         }
         else if (def.type === 'pc') {
-            // Системийн блок
+            // Системийн блок — тавцангийн баруун хэсэгт (x=+0.35), төвөөс холдуулав
             const caseM = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.40, 0.36), mat(0x252535, 0.5, 0.3));
+            caseM.position.set(0.35, 0.20, 0);
             caseM.userData = dk;
             g.add(caseM);
             const pled = new THREE.Mesh(new THREE.BoxGeometry(0.013, 0.011, 0.011),
                 new THREE.MeshStandardMaterial({ color: 0x0044ff, emissive: 0x0044ff, emissiveIntensity: 2 }));
-            pled.position.set(0, 0.17, -0.182);
+            pled.position.set(0.35, 0.37, -0.182);
             g.add(pled);
-            // Монитор
-            const mon = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.26, 0.022), mat(0x111111, 0.2, 0.7));
-            mon.position.set(0, 0.29, -0.24);
+            // Монитор — системийн блокийн зүүн талд (x=-0.35), томруулав
+            const mon = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.42, 0.022), mat(0x111111, 0.2, 0.7));
+            mon.position.set(-0.35, 0.35, -0.05);
             g.add(mon);
-            const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 0.20),
-                new THREE.MeshBasicMaterial({ color: 0x001133 }));
-            scr.position.set(0, 0.29, -0.228);
+            const scrCvs = document.createElement('canvas');
+            scrCvs.width = 512; scrCvs.height = 320;
+            const sctx = scrCvs.getContext('2d');
+            const scrTex = new THREE.CanvasTexture(scrCvs);
+            pcScrTexs.push({ cvs: scrCvs, ctx: sctx, tex: scrTex });
+            const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.36),
+                new THREE.MeshBasicMaterial({ map: scrTex }));
+            scr.position.set(-0.35, 0.35, -0.038);
             g.add(scr);
-            const mst = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.11, 0.04), mat(0x111111, 0.3));
-            mst.position.set(0, 0.11, -0.24);
+            // Монитор стенд
+            const mst = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.14, 0.04), mat(0x111111, 0.3));
+            mst.position.set(-0.35, 0.07, -0.05);
             g.add(mst);
-            // Гар
+            // Монитор суурь (жижиг тавиур)
+            const mbase = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.014, 0.12), mat(0x111111, 0.3));
+            mbase.position.set(-0.35, 0.007, -0.05);
+            g.add(mbase);
+            // Гар — мониторын урд талд (суугчийн тал)
             const kbd = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.011, 0.11), mat(0x1a1a2a, 0.6));
-            kbd.position.set(0, 0.006, -0.10);
+            kbd.position.set(-0.22, 0.006, 0.12);
             g.add(kbd);
-            // Хулгана
+            // Хулгана — гарны хажууд
             const ms = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.019, 0.082), mat(0x111111, 0.3));
-            ms.position.set(0.19, 0.006, -0.10);
+            ms.position.set(0.04, 0.006, 0.12);
             g.add(ms);
-            g.position.set(def.x, TY + 0.20, def.z);
+            g.position.set(def.x, TY + 0.03, def.z);
         }
 
         // Шошго (label)
@@ -422,8 +423,9 @@ export function createRoom3(scene, camera, renderer) {
             new THREE.PlaneGeometry(0.54, 0.13),
             new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(lc), transparent: true, depthTest: false })
         );
-        const lblY = def.type === 'pc' ? 0.32 : (def.type === 'switch' || def.type === 'wrouter' ? 0.10 : 0.14);
-        lbl.position.set(0, lblY, 0.01);
+        const lblY = def.type === 'pc' ? 0.43 : (def.type === 'switch' || def.type === 'wrouter' ? 0.10 : 0.14);
+        const lblX = def.type === 'pc' ? 0.35 : 0;
+        lbl.position.set(lblX, lblY, 0.01);
         g.add(lbl);
 
         g.userData = dk;
@@ -470,7 +472,7 @@ export function createRoom3(scene, camera, renderer) {
         new THREE.PlaneGeometry(1.7, 0.9),
         new THREE.MeshBasicMaterial({ map: scoreTex, transparent: true })
     );
-    scoreMesh.position.set(4.0, 3.6, -RD/2 + 0.05);
+    scoreMesh.position.set(4.0, 4.2, -RD/2 + 0.05);
     room.add(scoreMesh);
 
     function renderScore() {
@@ -491,35 +493,37 @@ export function createRoom3(scene, camera, renderer) {
     renderScore();
 
     // ======================
-    // СТАТУС ДЭЛГЭЦ
+    // СТАТУС — PC дэлгэц дээр харуулна
     // ======================
-    const statusCvs = document.createElement('canvas');
-    statusCvs.width = 512; statusCvs.height = 160;
-    const statusCtx = statusCvs.getContext('2d');
-    const statusTex = new THREE.CanvasTexture(statusCvs);
-    const statusMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(2.9, 0.9),
-        new THREE.MeshBasicMaterial({ map: statusTex, transparent: true })
-    );
-    statusMesh.position.set(-3.2, 3.6, -RD/2 + 0.05);
-    room.add(statusMesh);
-
     function renderStatus(line1, line2, color = '#aaddff') {
-        statusCtx.fillStyle = '#080d18';
-        statusCtx.fillRect(0, 0, 512, 160);
-        statusCtx.strokeStyle = '#2266aa';
-        statusCtx.lineWidth = 2;
-        statusCtx.strokeRect(2, 2, 508, 156);
-        statusCtx.fillStyle = color;
-        statusCtx.font = 'bold 26px Arial';
-        statusCtx.textAlign = 'center'; statusCtx.textBaseline = 'middle';
-        statusCtx.fillText(line1, 256, 55);
-        statusCtx.fillStyle = '#cccccc';
-        statusCtx.font = '22px Arial';
-        statusCtx.fillText(line2, 256, 108);
-        statusTex.needsUpdate = true;
+        pcScrTexs.forEach(({ cvs, ctx, tex }) => {
+            ctx.fillStyle = '#001133';
+            ctx.fillRect(0, 0, 512, 320);
+            ctx.fillStyle = '#1a4080';
+            ctx.fillRect(0, 0, 512, 80);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 30px Arial';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('Лаборатори ажил', 256, 28);
+            ctx.strokeStyle = '#3377cc';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(20, 82); ctx.lineTo(492, 82); ctx.stroke();
+            ctx.fillStyle = '#aad4ff';
+            ctx.font = 'bold 24px Arial';
+            ctx.fillText('Сүлжээний кабель холболт', 256, 120);
+            ctx.strokeStyle = '#2255aa';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(20, 155); ctx.lineTo(492, 155); ctx.stroke();
+            ctx.fillStyle = color;
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText(line1, 256, 200);
+            ctx.fillStyle = '#cccccc';
+            ctx.font = '22px Arial';
+            ctx.fillText(line2, 256, 260);
+            tex.needsUpdate = true;
+        });
     }
-    renderStatus('Кабель сонгоно уу', 'доорх панелаас дарна уу');
+    renderStatus('Кабель сонгоно уу', 'ханан дээр байгаа кабелиас нэгийг сонгоно уу');
 
     // ======================
     // FEEDBACK ДЭЛГЭЦ (урд ханан дээд)
@@ -669,7 +673,7 @@ export function createRoom3(scene, camera, renderer) {
                 setSelRing(null);
                 selectedCable = null;
                 setCableHighlight(null);
-                renderStatus('Кабель сонгоно уу', 'доорх панелаас дарна уу');
+                renderStatus('Кабель сонгоно уу', 'ханан дээр байгаа кабелиас нэгийг сонгоно уу');
                 return;
             }
 
@@ -692,14 +696,51 @@ export function createRoom3(scene, camera, renderer) {
             selectedCable = null;
             setSelRing(null);
             setCableHighlight(null);
-            renderStatus('Кабель сонгоно уу', 'доорх панелаас дарна уу');
+            renderStatus('Кабель сонгоно уу', 'ханан дээр байгаа кабелиас нэгийг сонгоно уу');
         }
     };
 
     // ======================
     // UPDATE LOOP
     // ======================
-    room.userData.update = (delta) => {
+    // ======================
+    // МУБСИ БААВГАЙ — model2.png
+    // ======================
+    let bearGroup3 = null;
+    new THREE.TextureLoader().load("./assets/model2.png", (tex) => {
+        const aspect = tex.image.width / tex.image.height;
+        const h = 1.9;
+        const w = h * aspect;
+
+        bearGroup3 = new THREE.Group();
+        bearGroup3.position.set(4.0, h / 2, 2.5);
+        room.add(bearGroup3);
+
+        const bearPlane3 = new THREE.Mesh(
+            new THREE.PlaneGeometry(w, h),
+            new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.1 })
+        );
+        bearPlane3.userData = { kind: "roomAudio" };
+        bearGroup3.add(bearPlane3);
+
+        const shadow = new THREE.Mesh(
+            new THREE.CircleGeometry(w * 0.3, 32),
+            new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.15 })
+        );
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.position.set(4.0, 0.01, 2.5);
+        room.add(shadow);
+    });
+
+    // АУДИО
+    const roomAudio3 = new Audio("./assets/room3.m4a");
+    roomAudio3.loop = false;
+    room.userData.toggleAudio = () => {
+        if (roomAudio3.paused) { roomAudio3.currentTime = 0; roomAudio3.play(); }
+        else { roomAudio3.pause(); }
+    };
+
+    room.userData.update = (delta, camera) => {
         const t = performance.now() * 0.001;
 
         // Feedback таймер
@@ -741,6 +782,14 @@ export function createRoom3(scene, camera, renderer) {
 
         // Буцах хаалга анивчих
         backDoor.material.opacity = 0.65 + Math.sin(t * 1.8) * 0.2;
+
+        // Billboard
+        if (bearGroup3 && camera) {
+            bearGroup3.rotation.y = Math.atan2(
+                camera.position.x - bearGroup3.position.x,
+                camera.position.z - bearGroup3.position.z
+            );
+        }
     };
 
     room.userData.onKey = () => {};

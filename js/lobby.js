@@ -1,10 +1,11 @@
 import * as THREE from "three";
+import { TextureLoader } from "three";
 
 export function createLobby(scene) {
     const room = new THREE.Group();
     scene.add(room);
 
-    const RW = 12, RH = 5, RD = 12;
+    const RW = 12, RH = 7, RD = 12;
 
     function mat(color, rough = 0.8, metal = 0) {
         return new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
@@ -72,8 +73,23 @@ export function createLobby(scene) {
         new THREE.PlaneGeometry(5.5, 0.9),
         new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(welcomeCvs), transparent: true })
     );
-    welcomeMesh.position.set(0, 4.2, -RD / 2 + 0.04);
+    welcomeMesh.position.set(0, RH - 2.2, -RD / 2 + 0.04);
     room.add(welcomeMesh);
+
+    // ТАВТАЙ МОРИЛНО УУ бичиг — хаалгуудын дээр
+    const vrWelcomeCvs = document.createElement("canvas");
+    vrWelcomeCvs.width = 1024; vrWelcomeCvs.height = 120;
+    const vwctx = vrWelcomeCvs.getContext("2d");
+    vwctx.clearRect(0, 0, 1024, 120);
+
+    
+
+    const vrWelcomeMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(7.0, 0.82),
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(vrWelcomeCvs), transparent: true })
+    );
+    vrWelcomeMesh.position.set(0, RH - 3.5, -RD / 2 + 0.04);
+    room.add(vrWelcomeMesh);
 
     // 4 ХААЛГА
     const doorDefs = [
@@ -120,12 +136,12 @@ export function createLobby(scene) {
             new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cvs), transparent: true, depthTest: false })
         );
         if (ry === 0) {
-            lbl.position.set(x, 2.45, z + 0.1);
+            lbl.position.set(x, 2.65, z + 0.1);
         } else if (ry > 0) {
-            lbl.position.set(x + 0.1, 2.45, z);
+            lbl.position.set(x + 0.1, 2.65, z);
             lbl.rotation.y = Math.PI / 2;
         } else {
-            lbl.position.set(x - 0.1, 2.45, z);
+            lbl.position.set(x - 0.1, 2.65, z);
             lbl.rotation.y = -Math.PI / 2;
         }
         room.add(lbl);
@@ -159,12 +175,78 @@ export function createLobby(scene) {
         room.add(l);
         glowLights.push({ light: l, base: 2.0 });
     });
+    // УГТАХ ЗУРАГ — арын ханан дүүрэн
+    new TextureLoader().load("./assets/ugtah.png", (tex) => {
+        const imgMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(RW, RH),
+            new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+        );
+        imgMesh.position.set(0, RH / 2, RD / 2 - 0.04);
+        imgMesh.rotation.y = Math.PI;
+        room.add(imgMesh);
+    });
 
-    room.userData.update = () => {
+    // ======================
+    // МУБСИ БААВГАЙ — billboard (камерт үргэлж харна)
+    // ======================
+    let bearGroup = null;
+
+    new TextureLoader().load("./assets/model4.png", (tex) => {
+        const aspect = tex.image.width / tex.image.height;
+        const h = 2.2;
+        const w = h * aspect;
+
+        bearGroup = new THREE.Group();
+        bearGroup.position.set(0, h / 2, -3.5);
+        room.add(bearGroup);
+
+        // Баавгайн зураг
+        const bearMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(w, h),
+            new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.1 })
+        );
+        bearMesh.userData = { kind: "welcomeAudio" };
+        bearGroup.add(bearMesh);
+
+
+        // Сүүдэр — шалан дээр
+        const shadow = new THREE.Mesh(
+            new THREE.CircleGeometry(w * 0.35, 32),
+            new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18 })
+        );
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.position.set(0, 0.01, -3.5);
+        room.add(shadow);
+
+        // Баавгайн орчны гэрэл
+        const bearLight = new THREE.PointLight(0xfff5e0, 1.2, 4);
+        bearLight.position.set(0, h, -2.8);
+        room.add(bearLight);
+    });
+
+    // УГТАХ ДУУ
+    const welcomeAudio = new Audio("./assets/welcome.m4a");
+    welcomeAudio.loop = false;
+    room.userData.toggleWelcome = () => {
+        if (welcomeAudio.paused) {
+            welcomeAudio.currentTime = 0;
+            welcomeAudio.play();
+        } else {
+            welcomeAudio.pause();
+        }
+    };
+
+    room.userData.update = (camera) => {
         const t = performance.now() * 0.001;
         glowLights.forEach(({ light, base }, i) => {
             light.intensity = base + Math.sin(t * 1.2 + i * 0.7) * 0.2;
         });
+        if (bearGroup && camera) {
+            bearGroup.rotation.y = Math.atan2(
+                camera.position.x - bearGroup.position.x,
+                camera.position.z - bearGroup.position.z
+            );
+        }
     };
 
     return room;
