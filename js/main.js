@@ -165,7 +165,7 @@ portalDefs.forEach(({ rg, color, x, y, z, rotY }) => {
 let currentRoom = 0;
 let isSitting   = false;
 
-const camPos    = { 0:[0,1.8,4], 1:[0,1.8,4], 2:[0,1.8,4], 3:[0,4.0,5], 4:[0,1.9,0], 5:[0,1.8,4] };
+const camPos    = { 0:[0,1.8,4], 1:[0,1.8,4], 2:[0,1.8,4], 3:[0,4.0,-2], 4:[0,1.9,0], 5:[0,1.8,4] };
 const camTarget = { 0:[0,1,-3],  1:[0,1,0],   2:[0,1,0],   3:[0,1.6,0], 4:[0,1.9,-2], 5:[0,1.2,0] };
 const roomNames = { 0:"Угтах танхим", 1:"Лекцийн танхим", 2:"Сүлжээний лаборатори",
                     3:"AR лаборатори", 4:"Компьютерийн лаборатори", 5:"Номын сан" };
@@ -552,6 +552,18 @@ function checkVRButtons() {
             }
             prevBtnState[key] = btn.pressed;
         });
+
+        // Зүүн жойстик — AR өрөөнд урагш/хойш (zoom)
+        if (src.handedness === 'left' && src.gamepad.axes.length >= 4) {
+            const az = src.gamepad.axes[3];
+            const DEAD = 0.12;
+            if (currentRoom === 3 && Math.abs(az) > DEAD) {
+                const forward = new THREE.Vector3();
+                camera.getWorldDirection(forward);
+                forward.y = 0; forward.normalize();
+                playerRig.position.addScaledVector(forward, -az * 0.05);
+            }
+        }
 
         // Баруун жойстик — AR өрөөнд topology эргүүлэх, бусад өрөөнд хөдөлгөөн
         if (src.handedness === 'right' && src.gamepad.axes.length >= 4) {
