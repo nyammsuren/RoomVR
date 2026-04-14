@@ -241,13 +241,43 @@ const controller1 = renderer.xr.getController(1);
 playerRig.add(controller0);
 playerRig.add(controller1);
 
-const laserLine = new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-1)]),
-    new THREE.LineBasicMaterial({ color: 0x00ffcc })
-);
-laserLine.scale.z = 15;
-// Laser-г баруун гарт (controller1) нэм, хэрэв холбогдоогүй бол controller0-д
-controller1.add(laserLine);
+// Laser — контроллер холбогдох үед л нэм (connected event)
+function makeLaser() {
+    const pts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -8)];
+    const line = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({ color: 0x00ffff })
+    );
+    const dot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.012, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+    dot.position.z = -8;
+    const g = new THREE.Group();
+    g.add(line);
+    g.add(dot);
+    g.name = "laser";
+    return g;
+}
+
+function onCtrlConnected(event) {
+    // tracked-pointer гарт laser нэм
+    if (event.data.targetRayMode === "tracked-pointer") {
+        // давхардуулахгүйн тулд өмнөхийг устга
+        const old = this.getObjectByName("laser");
+        if (old) this.remove(old);
+        this.add(makeLaser());
+    }
+}
+function onCtrlDisconnected() {
+    const old = this.getObjectByName("laser");
+    if (old) this.remove(old);
+}
+
+controller0.addEventListener("connected",    onCtrlConnected);
+controller0.addEventListener("disconnected", onCtrlDisconnected);
+controller1.addEventListener("connected",    onCtrlConnected);
+controller1.addEventListener("disconnected", onCtrlDisconnected);
 
 const tempMatrix  = new THREE.Matrix4();
 const raycasterVR = new THREE.Raycaster();
@@ -562,6 +592,7 @@ renderer.setAnimationLoop(() => {
     const t     = performance.now() * 0.001;
 
     checkVRButtons();
+    checkPortalProximity();
 
     allPortals.forEach(p => p.userData.update?.(t));
 
