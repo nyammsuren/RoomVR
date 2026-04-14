@@ -533,11 +533,18 @@ export function createRoom4(scene) {
     // ======================
     // БУЦАХ ХААЛГА
     // ======================
+    const doorFrame4 = new THREE.Mesh(
+        new THREE.BoxGeometry(1.62, 2.62, 0.06),
+        new THREE.MeshStandardMaterial({ color: 0xbb33aa, roughness: 0.3, metalness: 0.7, emissive: 0xbb33aa, emissiveIntensity: 0.15 })
+    );
+    doorFrame4.position.set(0, 1.31, RD / 2 - 0.01);
+    room.add(doorFrame4);
+
     const backDoor = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 2, 0.2),
+        new THREE.BoxGeometry(1.5, 2.5, 0.2),
         new THREE.MeshStandardMaterial({ color: 0xbb33aa, transparent: true, opacity: 0.85 })
     );
-    backDoor.position.set(0, 1, RD / 2 - 0.15);
+    backDoor.position.set(0, 1.25, RD / 2 - 0.15);
     backDoor.userData = { kind: "backDoor" };
     room.add(backDoor);
 
@@ -546,14 +553,14 @@ export function createRoom4(scene) {
     const lctx = lblCvs.getContext("2d");
     lctx.clearRect(0, 0, 512, 80);
     lctx.fillStyle = "#ffffff";
-    lctx.font = "bold 40px Arial";
+    lctx.font = "bold 60px Arial";
     lctx.textAlign = "center"; lctx.textBaseline = "middle";
     lctx.fillText("← Угтах танхим", 256, 40);
     const lblMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.8, 0.28),
+        new THREE.PlaneGeometry(2.6, 0.42),
         new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(lblCvs), transparent: true, depthTest: false })
     );
-    lblMesh.position.set(0, 2.4, RD / 2 - 0.05);
+    lblMesh.position.set(0, 3.2, RD / 2 - 0.05);
     lblMesh.rotation.y = Math.PI;
     room.add(lblMesh);
 
@@ -596,6 +603,9 @@ export function createRoom4(scene) {
         if (roomAudio4.paused) { roomAudio4.currentTime = 0; roomAudio4.play(); }
         else { roomAudio4.pause(); }
     };
+
+    room.userData.displayGroup = displayGroup;
+    room.userData.setDragging = (v) => { isDragging = v; };
 
     room.userData.update = (camera) => {
         backDoor.material.opacity = 0.65 + 0.2 * Math.sin(performance.now() * 0.0018);

@@ -105,44 +105,44 @@ export function createLobby(scene) {
     doorDefs.forEach(({ kind, color, hex, x, z, ry, label }) => {
         // Хаалганы хүрээ
         const frame = new THREE.Mesh(
-            new THREE.BoxGeometry(1.12, 2.12, 0.06),
-            mat(0x888888, 0.3, 0.6)
+            new THREE.BoxGeometry(1.62, 2.62, 0.06),
+            new THREE.MeshStandardMaterial({ color, roughness: 0.3, metalness: 0.7, emissive: color, emissiveIntensity: 0.15 })
         );
-        frame.position.set(x, 1.06, z);
+        frame.position.set(x, 1.31, z);
         frame.rotation.y = ry;
         room.add(frame);
 
         // Хаалга
         const door = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 2, 0.15),
+            new THREE.BoxGeometry(1.5, 2.5, 0.15),
             new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.82, emissive: color, emissiveIntensity: 0.2 })
         );
-        door.position.set(x, 1, z);
+        door.position.set(x, 1.25, z);
         door.rotation.y = ry;
         door.userData = { kind };
         room.add(door);
 
         // Шошго
         const cvs = document.createElement("canvas");
-        cvs.width = 1024; cvs.height = 128;
+        cvs.width = 1024; cvs.height = 160;
         const ctx = cvs.getContext("2d");
-        ctx.clearRect(0, 0, 1024, 128);
+        ctx.clearRect(0, 0, 1024, 160);
         ctx.fillStyle = hex;
-        ctx.font = "bold 56px Arial";
+        ctx.font = "bold 72px Arial";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(label, 512, 64);
+        ctx.fillText(label, 512, 80);
         const lbl = new THREE.Mesh(
-            new THREE.PlaneGeometry(2.4, 0.3),
+            new THREE.PlaneGeometry(3.0, 0.47),
             new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cvs), transparent: true, depthTest: false })
         );
         if (ry === 0) {
-            lbl.position.set(x, 2.65, z + 0.1);
+            lbl.position.set(x, 3.2, z + 0.1);
         } else if (ry > 0) {
-            lbl.position.set(x + 0.1, 2.65, z);
+            lbl.position.set(x + 0.1, 3.2, z);
             lbl.rotation.y = Math.PI / 2;
         } else {
-            lbl.position.set(x - 0.1, 2.65, z);
+            lbl.position.set(x - 0.1, 3.2, z);
             lbl.rotation.y = -Math.PI / 2;
         }
         room.add(lbl);
@@ -328,6 +328,43 @@ export function createLobby(scene) {
     // МУБИС бичгийн доор, урд хана дээр
     clockMesh.position.set(0, RH - 4.0, -RD / 2 + 0.06);
     room.add(clockMesh);
+
+    // === VR-ААС ГАРАХ ТОВЧ (зүүн хана, z=2) ===
+    (() => {
+        const exitCvs = document.createElement("canvas");
+        exitCvs.width = 512; exitCvs.height = 256;
+        const ec = exitCvs.getContext("2d");
+        ec.fillStyle = "#cc0022";
+        ec.beginPath();
+        if (ec.roundRect) ec.roundRect(8, 8, 496, 240, 24);
+        else ec.rect(8, 8, 496, 240);
+        ec.fill();
+        ec.strokeStyle = "#ff4466";
+        ec.lineWidth = 5;
+        ec.stroke();
+        ec.fillStyle = "#ffffff";
+        ec.font = "bold 52px Arial";
+        ec.textAlign = "center";
+        ec.textBaseline = "middle";
+        ec.fillText("⏻ VR-аас гарах", 256, 110);
+        ec.font = "32px Arial";
+        ec.fillStyle = "#ffaaaa";
+        ec.fillText("(trigger дарна уу)", 256, 175);
+
+        const exitBtn = new THREE.Mesh(
+            new THREE.PlaneGeometry(1.6, 0.8),
+            new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(exitCvs), transparent: true })
+        );
+        exitBtn.position.set(-RW / 2 + 0.06, 1.7, 2);
+        exitBtn.rotation.y = Math.PI / 2;
+        exitBtn.userData = { kind: "exitVR" };
+        room.add(exitBtn);
+
+        // Гэрэл
+        const el = new THREE.PointLight(0xff2244, 1.5, 3);
+        el.position.set(-RW / 2 + 0.5, 1.7, 2);
+        room.add(el);
+    })();
 
     room.userData.update = (camera) => {
         const t = performance.now() * 0.001;

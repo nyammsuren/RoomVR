@@ -10,27 +10,31 @@ export function createRoom6(scene) {
         return new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal });
     }
 
-    // === ГЭРЭЛТҮҮЛЭГ — futuristic cyan/blue ===
-    room.add(new THREE.AmbientLight(0x0a1a2e, 0.8));
-    const dir = new THREE.DirectionalLight(0x4488ff, 0.4);
+    // === ГЭРЭЛТҮҮЛЭГ — futuristic, гэрэл сайтай ===
+    room.add(new THREE.AmbientLight(0xc8e8ff, 1.4));
+    const dir = new THREE.DirectionalLight(0xaaddff, 1.0);
     dir.position.set(2, 8, 3);
     dir.castShadow = true;
     room.add(dir);
+    // Дунд нь том цагаан гэрэл
+    const centerLight = new THREE.PointLight(0xffffff, 1.8, 20);
+    centerLight.position.set(0, RH - 0.5, 0);
+    room.add(centerLight);
 
-    // Таазны неон гэрлийн хавтас — cyan
+    // Таазны неон гэрлийн хавтас — cyan (илүү тод)
     [[-3,-3],[3,-3],[-3,3],[3,3]].forEach(([x,z]) => {
         const panel = new THREE.Mesh(
-            new THREE.BoxGeometry(1.2, 0.04, 0.12),
-            new THREE.MeshStandardMaterial({ color: 0x00eeff, emissive: 0x00eeff, emissiveIntensity: 3.0 })
+            new THREE.BoxGeometry(1.8, 0.06, 0.18),
+            new THREE.MeshStandardMaterial({ color: 0x00eeff, emissive: 0x00eeff, emissiveIntensity: 4.0 })
         );
-        panel.position.set(x, RH - 0.02, z);
+        panel.position.set(x, RH - 0.03, z);
         room.add(panel);
-        const l = new THREE.PointLight(0x00ccff, 2.5, 8);
-        l.position.set(x, RH - 0.15, z);
+        const l = new THREE.PointLight(0x88eeff, 4.0, 10);
+        l.position.set(x, RH - 0.2, z);
         room.add(l);
     });
 
-    // Хана дагасан неон тууз — доод хэсэг
+    // Хана дагасан неон тууз — доод хэсэг (цайвар цэнхэр)
     [
         [0, 0, -RD/2 + 0.02, 0],
         [0, 0,  RD/2 - 0.02, Math.PI],
@@ -39,39 +43,39 @@ export function createRoom6(scene) {
     ].forEach(([x, _y, z, ry]) => {
         const w = (ry === 0 || ry === Math.PI) ? RW : RD;
         const strip = new THREE.Mesh(
-            new THREE.BoxGeometry(w, 0.04, 0.04),
-            new THREE.MeshStandardMaterial({ color: 0x0044ff, emissive: 0x0044ff, emissiveIntensity: 2.5 })
+            new THREE.BoxGeometry(w, 0.05, 0.05),
+            new THREE.MeshStandardMaterial({ color: 0x00aaff, emissive: 0x00aaff, emissiveIntensity: 3.0 })
         );
         strip.position.set(x, 0.08, z);
         strip.rotation.y = ry;
         room.add(strip);
-        const sl = new THREE.PointLight(0x0033cc, 0.8, 3);
-        sl.position.set(x, 0.2, z);
+        const sl = new THREE.PointLight(0x44ccff, 1.5, 4);
+        sl.position.set(x, 0.3, z);
         room.add(sl);
     });
 
-    // === ШАЛ, ТААЗ, ХАНУУД — futuristic ===
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), mat(0x050a14, 0.3, 0.6));
+    // === ШАЛ, ТААЗ, ХАНУУД ===
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), mat(0x0e1e30, 0.3, 0.6));
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     floor.userData = { teleport: true };
     room.add(floor);
 
-    // Шалны cyan торон сүлжээ
+    // Шалны cyan торон сүлжээ (арай тод)
     for (let i = -5; i <= 5; i++) {
-        const hLine = new THREE.Mesh(new THREE.PlaneGeometry(RW, 0.025),
-            new THREE.MeshStandardMaterial({ color: 0x00aaff, emissive: 0x00aaff, emissiveIntensity: 1.0, transparent: true, opacity: 0.6 }));
+        const hLine = new THREE.Mesh(new THREE.PlaneGeometry(RW, 0.03),
+            new THREE.MeshStandardMaterial({ color: 0x00ccff, emissive: 0x00ccff, emissiveIntensity: 1.5, transparent: true, opacity: 0.7 }));
         hLine.rotation.x = -Math.PI / 2;
         hLine.position.set(0, 0.001, i);
         room.add(hLine);
-        const vLine = new THREE.Mesh(new THREE.PlaneGeometry(0.025, RD),
-            new THREE.MeshStandardMaterial({ color: 0x00aaff, emissive: 0x00aaff, emissiveIntensity: 1.0, transparent: true, opacity: 0.6 }));
+        const vLine = new THREE.Mesh(new THREE.PlaneGeometry(0.03, RD),
+            new THREE.MeshStandardMaterial({ color: 0x00ccff, emissive: 0x00ccff, emissiveIntensity: 1.5, transparent: true, opacity: 0.7 }));
         vLine.rotation.x = -Math.PI / 2;
         vLine.position.set(i, 0.001, 0);
         room.add(vLine);
     }
 
-    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), mat(0x060a16, 0.9));
+    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), mat(0x1a2a3e, 0.7));
     ceil.rotation.x = Math.PI / 2;
     ceil.position.set(0, RH, 0);
     room.add(ceil);
@@ -82,7 +86,7 @@ export function createRoom6(scene) {
         [RD, RH, [-RW/2, RH/2, 0],  Math.PI/2],
         [RD, RH, [ RW/2, RH/2, 0], -Math.PI/2],
     ].forEach(([w, h, pos, ry]) => {
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat(0x080d1a, 0.9));
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat(0x162030, 0.8));
         m.position.set(...pos);
         m.rotation.y = ry;
         room.add(m);
@@ -301,8 +305,8 @@ export function createRoom6(scene) {
     // === НОМЫН ТАВИУР ===
     function addBookshelf(wallX, wallZ, faceDir, bookIndices) {
         // faceDir: 1 = зүүн хана (+x рүү харна), -1 = баруун хана (-x рүү харна)
-        const shM = mat(0x6b3a1f, 0.7);
-        const bdM = mat(0x8b5a2b, 0.6);
+        const shM = new THREE.MeshStandardMaterial({ color: 0x1a2a40, roughness: 0.3, metalness: 0.8, emissive: 0x003366, emissiveIntensity: 0.4 });
+        const bdM = new THREE.MeshStandardMaterial({ color: 0x22344e, roughness: 0.25, metalness: 0.75, emissive: 0x004488, emissiveIntensity: 0.3 });
         const D = 0.26; // тавцангийн гүн
 
         // Арын самбар
@@ -409,12 +413,15 @@ export function createRoom6(scene) {
         const lc = document.createElement("canvas");
         lc.width = 1024; lc.height = 128;
         const lctx = lc.getContext("2d");
-        lctx.fillStyle = "rgba(60, 30, 5, 0.88)";
+        lctx.fillStyle = "rgba(0, 8, 28, 0.92)";
         lctx.fillRect(0, 0, 1024, 128);
-        lctx.strokeStyle = "#c8841a";
-        lctx.lineWidth = 5;
+        lctx.strokeStyle = "#00eeff";
+        lctx.lineWidth = 4;
+        lctx.shadowColor = "#00aaff";
+        lctx.shadowBlur = 10;
         lctx.strokeRect(4, 4, 1016, 120);
-        lctx.fillStyle = "#ffe0a0";
+        lctx.shadowBlur = 0;
+        lctx.fillStyle = "#00eeff";
         lctx.font = "bold 68px Arial";
         lctx.textAlign = "center";
         lctx.textBaseline = "middle";
@@ -436,12 +443,15 @@ export function createRoom6(scene) {
         const lc = document.createElement("canvas");
         lc.width = 1024; lc.height = 128;
         const lctx = lc.getContext("2d");
-        lctx.fillStyle = "rgba(60, 30, 5, 0.88)";
+        lctx.fillStyle = "rgba(0, 8, 28, 0.92)";
         lctx.fillRect(0, 0, 1024, 128);
-        lctx.strokeStyle = "#c8841a";
-        lctx.lineWidth = 5;
+        lctx.strokeStyle = "#00eeff";
+        lctx.lineWidth = 4;
+        lctx.shadowColor = "#00aaff";
+        lctx.shadowBlur = 10;
         lctx.strokeRect(4, 4, 1016, 120);
-        lctx.fillStyle = "#ffe0a0";
+        lctx.shadowBlur = 0;
+        lctx.fillStyle = "#00eeff";
         lctx.font = "bold 68px Arial";
         lctx.textAlign = "center";
         lctx.textBaseline = "middle";
@@ -462,12 +472,15 @@ export function createRoom6(scene) {
         const lc = document.createElement('canvas');
         lc.width = 1024; lc.height = 128;
         const lctx = lc.getContext('2d');
-        lctx.fillStyle = 'rgba(60, 30, 5, 0.88)';
+        lctx.fillStyle = 'rgba(0, 8, 28, 0.92)';
         lctx.fillRect(0, 0, 1024, 128);
-        lctx.strokeStyle = '#c8841a';
-        lctx.lineWidth = 5;
+        lctx.strokeStyle = '#00eeff';
+        lctx.lineWidth = 4;
+        lctx.shadowColor = '#00aaff';
+        lctx.shadowBlur = 10;
         lctx.strokeRect(4, 4, 1016, 120);
-        lctx.fillStyle = '#ffe0a0';
+        lctx.shadowBlur = 0;
+        lctx.fillStyle = '#00eeff';
         lctx.font = 'bold 68px Arial';
         lctx.textAlign = 'center';
         lctx.textBaseline = 'middle';
@@ -481,12 +494,18 @@ export function createRoom6(scene) {
         room.add(lbl);
     })();
 
-    // === УНШЛАГЫН ШИРЭЭ ===
-    const tableTop = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.06, 1.0), mat(0x8b5a2b, 0.6));
+    // === УНШЛАГЫН ШИРЭЭ — futuristic dark glass ===
+    const tableMat = new THREE.MeshStandardMaterial({ color: 0x1e3a5a, roughness: 0.1, metalness: 0.65, transparent: true, opacity: 0.90, emissive: 0x004466, emissiveIntensity: 0.3 });
+    const legMat   = new THREE.MeshStandardMaterial({ color: 0x2a4060, roughness: 0.2, metalness: 0.85, emissive: 0x003355, emissiveIntensity: 0.35 });
+    const tableTop = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.06, 1.0), tableMat);
     tableTop.position.set(2.5, 0.78, 0);
     room.add(tableTop);
+    // Ширээний гэрэл
+    const tableLight = new THREE.PointLight(0x00aaff, 0.6, 3);
+    tableLight.position.set(2.5, 0.82, 0);
+    room.add(tableLight);
     [[1.0,0.45],[1.0,-0.45],[-1.0,0.45],[-1.0,-0.45]].forEach(([dx,dz]) => {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.78, 0.06), mat(0x5a3010, 0.7));
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.78, 0.06), legMat);
         leg.position.set(2.5 + dx, 0.39, dz);
         room.add(leg);
     });
@@ -499,7 +518,8 @@ export function createRoom6(scene) {
         { cx: 3.95, cz: -0.55, lx: 2.5, lz:  0, ry: Math.PI    },
     ].forEach(({ cx, cz, lx, lz, ry }) => {
         const cg = new THREE.Group();
-        const cM = mat(0x7a4a20, 0.65);
+        const cM  = new THREE.MeshStandardMaterial({ color: 0x1e3450, roughness: 0.2, metalness: 0.75, emissive: 0x003a55, emissiveIntensity: 0.4 });
+        const clM = new THREE.MeshStandardMaterial({ color: 0x2a3e5c, roughness: 0.15, metalness: 0.85, emissive: 0x003366, emissiveIntensity: 0.35 });
 
         const seat = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.04, 0.36), cM);
         seat.position.set(0, 0.44, 0);
@@ -513,7 +533,7 @@ export function createRoom6(scene) {
         cg.add(back);
 
         [[0.15,0.13],[-0.15,0.13],[0.15,-0.13],[-0.15,-0.13]].forEach(([dx,dz]) => {
-            const l = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.44, 0.04), mat(0x3a1a08, 0.5));
+            const l = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.44, 0.04), clM);
             l.position.set(dx, 0.22, dz);
             cg.add(l);
         });
@@ -529,7 +549,7 @@ export function createRoom6(scene) {
         const aspect = tex.image.width / tex.image.height;
         const h = 1.9, w = h * aspect;
         libraryBear = new THREE.Group();
-        libraryBear.position.set(4.5, h/2, -2.5);
+        libraryBear.position.set(3.5, h/2, 4.0);
         room.add(libraryBear);
         const bm = new THREE.Mesh(
             new THREE.PlaneGeometry(w, h),
@@ -542,22 +562,22 @@ export function createRoom6(scene) {
             new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.15 })
         );
         shadow.rotation.x = -Math.PI / 2;
-        shadow.position.set(4.5, 0.01, -2.5);
+        shadow.position.set(3.5, 0.01, 4.0);
         room.add(shadow);
     });
 
     // === ХААЛГА — угтах танхим руу ===
     const doorColor = 0xddaa00;
-    const bFrame = new THREE.Mesh(new THREE.BoxGeometry(1.12, 2.12, 0.06), mat(0x888888, 0.3, 0.6));
-    bFrame.position.set(0, 1.06, RD/2 - 0.01);
+    const bFrame = new THREE.Mesh(new THREE.BoxGeometry(1.62, 2.62, 0.06), new THREE.MeshStandardMaterial({ color: doorColor, roughness: 0.3, metalness: 0.7, emissive: doorColor, emissiveIntensity: 0.15 }));
+    bFrame.position.set(0, 1.31, RD/2 - 0.01);
     room.add(bFrame);
 
     const bDoor = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 2, 0.15),
+        new THREE.BoxGeometry(1.5, 2.5, 0.15),
         new THREE.MeshStandardMaterial({ color: doorColor, transparent: true, opacity: 0.82,
             emissive: doorColor, emissiveIntensity: 0.2 })
     );
-    bDoor.position.set(0, 1, RD/2 - 0.12);
+    bDoor.position.set(0, 1.25, RD/2 - 0.12);
     bDoor.userData = { kind: "backDoor" };
     room.add(bDoor);
 
@@ -570,16 +590,16 @@ export function createRoom6(scene) {
     const dlc = dlCvs.getContext("2d");
     dlc.clearRect(0, 0, 1024, 128);
     dlc.fillStyle = "#ddaa00";
-    dlc.font = "bold 56px Arial";
+    dlc.font = "bold 72px Arial";
     dlc.textAlign = "center"; dlc.textBaseline = "middle";
     dlc.fillText("Угтах танхим руу", 512, 64);
     const doorLbl = new THREE.Mesh(
-        new THREE.PlaneGeometry(2.6, 0.32),
+        new THREE.PlaneGeometry(3.2, 0.44),
         new THREE.MeshBasicMaterial({
             map: new THREE.CanvasTexture(dlCvs), transparent: true, depthTest: false
         })
     );
-    doorLbl.position.set(0, 2.65, RD/2 - 0.1);
+    doorLbl.position.set(0, 3.2, RD/2 - 0.1);
     doorLbl.rotation.y = Math.PI;
     room.add(doorLbl);
 

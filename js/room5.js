@@ -633,10 +633,10 @@ export function createRoom5(scene) {
     // ======================
     // БУЦАХ ХААЛГА → Угтах танхим (баруун ханан дээр)
     const backDoor = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 2, 1),
+        new THREE.BoxGeometry(0.2, 2.5, 1.5),
         new THREE.MeshStandardMaterial({ color: 0xff6600, transparent: true, opacity: 0.85 })
     );
-    backDoor.position.set(RW / 2 - 0.15, 1, 0);
+    backDoor.position.set(RW / 2 - 0.15, 1.25, 0);
     backDoor.userData = { kind: "backDoor" };
     room.add(backDoor);
 
@@ -645,15 +645,15 @@ export function createRoom5(scene) {
     const lctx = lblCvs.getContext("2d");
     lctx.clearRect(0, 0, 512, 80);
     lctx.fillStyle = "#ffffff";
-    lctx.font = "bold 40px Arial";
+    lctx.font = "bold 60px Arial";
     lctx.textAlign = "center";
     lctx.textBaseline = "middle";
     lctx.fillText("← Угтах танхим", 256, 40);
     const lblMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.8, 0.28),
+        new THREE.PlaneGeometry(2.6, 0.42),
         new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(lblCvs), transparent: true, depthTest: false })
     );
-    lblMesh.position.set(RW / 2 - 0.05, 2.4, 0);
+    lblMesh.position.set(RW / 2 - 0.05, 3.2, 0);
     lblMesh.rotation.y = -Math.PI / 2;
     room.add(lblMesh);
 

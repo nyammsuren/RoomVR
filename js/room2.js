@@ -803,14 +803,14 @@ export function createRoom2(scene) {
     // БУЦАХ ХААЛГА
     // ======================
     const doorFrame = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 2.12, 1.12),
-        mat(0x888888, 0.3, 0.6)
+        new THREE.BoxGeometry(0.12, 2.62, 1.62),
+        new THREE.MeshStandardMaterial({ color: 0x2266dd, roughness: 0.3, metalness: 0.7, emissive: 0x2266dd, emissiveIntensity: 0.15 })
     );
-    doorFrame.position.set(RW / 2 - 0.06, 1.06, 0);
+    doorFrame.position.set(RW / 2 - 0.06, 1.31, 0);
     room.add(doorFrame);
 
     const backDoor = new THREE.Mesh(
-        new THREE.BoxGeometry(0.1, 2, 1),
+        new THREE.BoxGeometry(0.1, 2.5, 1.5),
         new THREE.MeshStandardMaterial({
             color: 0x2266dd,
             transparent: true,
@@ -819,7 +819,7 @@ export function createRoom2(scene) {
             emissiveIntensity: 0.2
         })
     );
-    backDoor.position.set(RW / 2 - 0.1, 1, 0);
+    backDoor.position.set(RW / 2 - 0.1, 1.25, 0);
     backDoor.userData = { kind: "backDoor" };
     room.add(backDoor);
 
@@ -829,20 +829,20 @@ export function createRoom2(scene) {
     const lctx = lblCvs.getContext("2d");
     lctx.clearRect(0, 0, 512, 128);
     lctx.fillStyle = "#2266dd";
-    lctx.font = "bold 52px Arial";
+    lctx.font = "bold 68px Arial";
     lctx.textAlign = "center";
     lctx.textBaseline = "middle";
     lctx.fillText("← Угтах танхим", 256, 64);
 
     const lblMesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(2.2, 0.32),
+        new THREE.PlaneGeometry(2.8, 0.44),
         new THREE.MeshBasicMaterial({
             map: new THREE.CanvasTexture(lblCvs),
             transparent: true,
             depthTest: false
         })
     );
-    lblMesh.position.set(RW / 2 - 0.05, 2.35, 0);
+    lblMesh.position.set(RW / 2 - 0.05, 3.2, 0);
     lblMesh.rotation.y = -Math.PI / 2;
     room.add(lblMesh);
 

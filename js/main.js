@@ -92,32 +92,32 @@ function createPortalMesh(color) {
     const g = new THREE.Group();
 
     const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.62, 0.07, 20, 60),
+        new THREE.TorusGeometry(0.82, 0.09, 20, 60),
         new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 2.5,
             roughness: 0.1, metalness: 0.9, transparent: true, opacity: 0.95 })
     );
     g.add(ring);
 
     const inner = new THREE.Mesh(
-        new THREE.CircleGeometry(0.55, 48),
+        new THREE.CircleGeometry(0.73, 48),
         new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
     );
     inner.position.z = 0.01;
     g.add(inner);
 
     const aura = new THREE.Mesh(
-        new THREE.CircleGeometry(0.85, 48),
+        new THREE.CircleGeometry(1.1, 48),
         new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.12, side: THREE.DoubleSide })
     );
     aura.position.z = -0.01;
     g.add(aura);
 
-    const light = new THREE.PointLight(color, 3, 4);
+    const light = new THREE.PointLight(color, 4, 5);
     light.position.z = 0.3;
     g.add(light);
 
     const ring2 = new THREE.Mesh(
-        new THREE.TorusGeometry(0.75, 0.03, 12, 50),
+        new THREE.TorusGeometry(1.0, 0.04, 12, 50),
         new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5 })
     );
     g.add(ring2);
@@ -136,19 +136,18 @@ function createPortalMesh(color) {
 
 // Портал байрлалууд — хаалгатай яг таарна
 const portalDefs = [
-    // Lobby → target rooms
-    { rg: lobby,    color: 0x2266dd, x: -3,          y: 1, z: -5.85,         rotY: 0           },
-    { rg: lobby,    color: 0x229944, x:  3,          y: 1, z: -5.85,         rotY: 0           },
-    { rg: lobby,    color: 0xbb33aa, x: -5.85,       y: 1, z: -2,            rotY: Math.PI / 2 },
-    { rg: lobby,    color: 0xff6600, x:  5.85,       y: 1, z: -2,            rotY:-Math.PI / 2 },
-    // Lobby → library
-    { rg: lobby,    color: 0xddaa00, x:  5.85,       y: 1, z:  2,            rotY:-Math.PI / 2 },
-    // Target rooms → lobby
-    { rg: lectureR, color: 0x2266dd, x:  4.9,        y: 1, z:  0,            rotY:-Math.PI / 2 },
-    { rg: netLabR,  color: 0x229944, x: -3,          y: 1, z:  4.85,         rotY: Math.PI     },
-    { rg: arLabR,   color: 0xbb33aa, x:  0,          y: 1, z:  4.85,         rotY: Math.PI     },
-    { rg: compLabR, color: 0xff6600, x:  4.85,       y: 1, z:  0,            rotY:-Math.PI / 2 },
-    { rg: libraryR, color: 0xddaa00, x:  0,          y: 1, z:  5.85,         rotY: 0           },
+    // Lobby → target rooms (хаалганы яг байрлал, lobby RD=12)
+    { rg: lobby,    color: 0x2266dd, x: -3,    y: 1.2, z: -5.88, rotY: 0           },
+    { rg: lobby,    color: 0x229944, x:  3,    y: 1.2, z: -5.88, rotY: 0           },
+    { rg: lobby,    color: 0xbb33aa, x: -5.88, y: 1.2, z: -2,    rotY: Math.PI / 2 },
+    { rg: lobby,    color: 0xff6600, x:  5.88, y: 1.2, z: -2,    rotY:-Math.PI / 2 },
+    { rg: lobby,    color: 0xddaa00, x:  5.88, y: 1.2, z:  2,    rotY:-Math.PI / 2 },
+    // Target rooms → lobby (хаалганы яг байрлал)
+    { rg: lectureR, color: 0x2266dd, x:  4.9,  y: 1.2, z:  0,    rotY:-Math.PI / 2 },
+    { rg: netLabR,  color: 0x229944, x: -4.9,  y: 1.2, z:  0,    rotY: Math.PI/2   },
+    { rg: arLabR,   color: 0xbb33aa, x:  0,    y: 1.2, z:  4.85, rotY: Math.PI     },
+    { rg: compLabR, color: 0xff6600, x:  4.85, y: 1.2, z:  0,    rotY:-Math.PI / 2 },
+    { rg: libraryR, color: 0xddaa00, x:  0,    y: 1.2, z:  5.88, rotY: 0           },
 ];
 
 const allPortals = [];
@@ -166,8 +165,8 @@ portalDefs.forEach(({ rg, color, x, y, z, rotY }) => {
 let currentRoom = 0;
 let isSitting   = false;
 
-const camPos    = { 0:[0,1.6,4], 1:[0,1.6,4], 2:[0,1.6,4], 3:[0,1.6,4], 4:[0,1.9,0], 5:[0,1.6,4] };
-const camTarget = { 0:[0,1,-3],  1:[0,1,0],   2:[0,1,0],   3:[0,1,0],   4:[0,1.9,-2], 5:[0,1.2,0] };
+const camPos    = { 0:[0,1.8,4], 1:[0,1.8,4], 2:[0,1.8,4], 3:[0,4.0,5], 4:[0,1.9,0], 5:[0,1.8,4] };
+const camTarget = { 0:[0,1,-3],  1:[0,1,0],   2:[0,1,0],   3:[0,1.6,0], 4:[0,1.9,-2], 5:[0,1.2,0] };
 const roomNames = { 0:"Угтах танхим", 1:"Лекцийн танхим", 2:"Сүлжээний лаборатори",
                     3:"AR лаборатори", 4:"Компьютерийн лаборатори", 5:"Номын сан" };
 
@@ -192,17 +191,21 @@ window.goRoom = (n) => {
 // ======================
 // PROXIMITY PORTAL DETECTION
 // ======================
-const PORTAL_TRIGGER_DIST = 1.2;
+const PORTAL_TRIGGER_DIST = 1.5;
 
 const portalTriggers = [
-    { room: 0, kind: "toLecture",  target: 1, x: -3,    z: -5.85 },
-    { room: 0, kind: "toNetLab",   target: 2, x:  3,    z: -5.85 },
-    { room: 0, kind: "toARLab",    target: 3, x: -5.85, z: -2    },
-    { room: 0, kind: "toCompLab",  target: 4, x:  5.85, z: -2    },
-    { room: 1, kind: "backDoor",   target: 0, x:  4.5,  z:  0    },
-    { room: 2, kind: "backDoor",   target: 0, x: -3,    z:  4.85 },
-    { room: 3, kind: "backDoor",   target: 0, x:  0,    z:  4.85 },
-    { room: 4, kind: "backDoor",   target: 0, x:  4.85, z:  0    },
+    // Угтах танхим → бусад өрөөнүүд
+    { room: 0, kind: "toLecture",  target: 1, x: -3,   z: -5.1 },
+    { room: 0, kind: "toNetLab",   target: 2, x:  3,   z: -5.1 },
+    { room: 0, kind: "toARLab",    target: 3, x: -5.1, z: -2   },
+    { room: 0, kind: "toCompLab",  target: 4, x:  5.1, z: -2   },
+    { room: 0, kind: "toLibrary",  target: 5, x:  5.1, z:  2   },
+    // Бусад өрөөнөөс угтах танхим руу
+    { room: 1, kind: "backDoor",   target: 0, x:  4.1, z:  0   },
+    { room: 2, kind: "backDoor",   target: 0, x: -4.1, z:  0   },
+    { room: 3, kind: "backDoor",   target: 0, x:  0,   z:  4.1 },
+    { room: 4, kind: "backDoor",   target: 0, x:  4.1, z:  0   },
+    { room: 5, kind: "backDoor",   target: 0, x:  0,   z:  5.1 },
 ];
 
 function getPlayerWorldPos() {
@@ -233,7 +236,7 @@ function checkPortalProximity() {
 // ======================
 // VR CONTROLLER
 // ======================
-const controller = renderer.xr.getController(0);
+const controller = renderer.xr.getController(1);
 scene.add(controller);
 
 const laserLine = new THREE.Line(
@@ -246,7 +249,10 @@ controller.add(laserLine);
 const tempMatrix  = new THREE.Matrix4();
 const raycasterVR = new THREE.Raycaster();
 
+window.endVR = () => renderer.xr.getSession()?.end();
+
 function handleKind(kind, isVR, clickedObj) {
+    if (kind === "exitVR") { renderer.xr.getSession()?.end(); return true; }
     if (kind === "toLecture")  { window.goRoom(1); return true; }
     if (kind === "toNetLab")   { window.goRoom(2); return true; }
     if (kind === "toARLab")    { window.goRoom(3); return true; }
@@ -483,6 +489,11 @@ function checkVRButtons() {
             const key = `${src.handedness}_${i}`;
             const wasPressed = prevBtnState[key] || false;
             if (btn.pressed && !wasPressed) {
+                // Oculus/Menu товч (i=2) — VR-аас гарах
+                if (i === 2) {
+                    renderer.xr.getSession()?.end();
+                    return;
+                }
                 if (currentRoom === 2) {
                     // Сүлжээний лаборатори — кабель сонгох
                     if (src.handedness === 'left') {
@@ -495,30 +506,41 @@ function checkVRButtons() {
                     }
                 } else {
                     // Бусад өрөөнд — сандал суух/босох
-                    if (src.handedness === 'left') {
-                        if (i === 4) sitNearestChair();           // X → суух
-                        if (i === 5) { isSitting = false; window.goRoom(currentRoom); } // Y → босох
+                    if (src.handedness === 'right') {
+                        if (i === 4) sitNearestChair();           // A → суух
+                        if (i === 5) { isSitting = false; window.goRoom(currentRoom); } // B → босох
                     }
                 }
             }
             prevBtnState[key] = btn.pressed;
         });
 
-        // Зүүн жойстик — тоглогчийн хөдөлгөөн (бүх өрөөнд)
-        if (src.handedness === 'left' && src.gamepad.axes.length >= 4) {
+        // Баруун жойстик — AR өрөөнд topology эргүүлэх, бусад өрөөнд хөдөлгөөн
+        if (src.handedness === 'right' && src.gamepad.axes.length >= 4) {
             const ax = src.gamepad.axes[2];
             const az = src.gamepad.axes[3];
             const DEAD = 0.12;
-            const SPEED = 0.04;
-            if (Math.abs(ax) > DEAD || Math.abs(az) > DEAD) {
-                const forward = new THREE.Vector3();
-                camera.getWorldDirection(forward);
-                forward.y = 0;
-                forward.normalize();
-                const right = new THREE.Vector3();
-                right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
-                playerRig.position.addScaledVector(right, ax * SPEED);
-                playerRig.position.addScaledVector(forward, -az * SPEED);
+            if (currentRoom === 3) {
+                // AR өрөө: displayGroup эргүүлэх
+                const dg = arLabR.userData.displayGroup;
+                if (dg && (Math.abs(ax) > DEAD || Math.abs(az) > DEAD)) {
+                    arLabR.userData.setDragging(true);
+                    dg.rotation.y += ax * 0.04;
+                    dg.rotation.x = Math.max(-0.8, Math.min(0.8, dg.rotation.x - az * 0.03));
+                    setTimeout(() => arLabR.userData.setDragging(false), 200);
+                }
+            } else {
+                const SPEED = 0.04;
+                if (Math.abs(ax) > DEAD || Math.abs(az) > DEAD) {
+                    const forward = new THREE.Vector3();
+                    camera.getWorldDirection(forward);
+                    forward.y = 0;
+                    forward.normalize();
+                    const right = new THREE.Vector3();
+                    right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
+                    playerRig.position.addScaledVector(right, ax * SPEED);
+                    playerRig.position.addScaledVector(forward, -az * SPEED);
+                }
             }
         }
     }
