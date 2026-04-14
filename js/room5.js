@@ -258,6 +258,9 @@ export function createRoom5(scene) {
 
         const seat = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.04, 0.38), cM);
         seat.position.set(0, 0.44, 0);
+        seat.userData = { kind: "studentChair",
+            sitX: x, sitY: 1.1, sitZ: z + 0.42,
+            lookX: x, lookY: 1.145, lookZ: z - 0.1 };
         cg.add(seat);
 
         const back = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.38, 0.04), cM);

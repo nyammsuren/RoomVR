@@ -6,6 +6,7 @@ import { createRoom2 }    from "./room2.js";
 import { createRoom3 }    from "./room3.js";
 import { createRoom4 }    from "./room4.js";
 import { createRoom5 }    from "./room5.js";
+import { createRoom6 }    from "./room6.js";
 
 // ======================
 // SCENE
@@ -53,8 +54,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 1, -3);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
-controls.minDistance   = 0.5;
-controls.maxDistance   = 25;
+controls.enableZoom    = false;
 controls.enablePan     = false;
 controls.maxPolarAngle = Math.PI * 0.85;
 
@@ -68,19 +68,22 @@ renderer.xr.addEventListener("sessionend",   () => { controls.enabled = true;  }
 // 2 = Сүлжээний лаборатори (room3)
 // 3 = AR лаборатори (room4)
 // 4 = Компьютерийн лаборатори (room5)
+// 5 = Номын сан (room6)
 // ======================
 const lobby    = createLobby(scene);
 const lectureR = createRoom2(scene);
 const netLabR  = createRoom3(scene, camera, renderer);
 const arLabR   = createRoom4(scene);
 const compLabR = createRoom5(scene);
+const libraryR = createRoom6(scene);
 
-const roomMap = { 0: lobby, 1: lectureR, 2: netLabR, 3: arLabR, 4: compLabR };
+const roomMap = { 0: lobby, 1: lectureR, 2: netLabR, 3: arLabR, 4: compLabR, 5: libraryR };
 
 lectureR.visible = false;
 netLabR.visible  = false;
 arLabR.visible   = false;
 compLabR.visible = false;
+libraryR.visible = false;
 
 // ======================
 // ПОРТАЛ ВИЗУАЛ
@@ -138,11 +141,14 @@ const portalDefs = [
     { rg: lobby,    color: 0x229944, x:  3,          y: 1, z: -5.85,         rotY: 0           },
     { rg: lobby,    color: 0xbb33aa, x: -5.85,       y: 1, z: -2,            rotY: Math.PI / 2 },
     { rg: lobby,    color: 0xff6600, x:  5.85,       y: 1, z: -2,            rotY:-Math.PI / 2 },
+    // Lobby → library
+    { rg: lobby,    color: 0xddaa00, x:  5.85,       y: 1, z:  2,            rotY:-Math.PI / 2 },
     // Target rooms → lobby
     { rg: lectureR, color: 0x2266dd, x:  4.9,        y: 1, z:  0,            rotY:-Math.PI / 2 },
     { rg: netLabR,  color: 0x229944, x: -3,          y: 1, z:  4.85,         rotY: Math.PI     },
     { rg: arLabR,   color: 0xbb33aa, x:  0,          y: 1, z:  4.85,         rotY: Math.PI     },
     { rg: compLabR, color: 0xff6600, x:  4.85,       y: 1, z:  0,            rotY:-Math.PI / 2 },
+    { rg: libraryR, color: 0xddaa00, x:  0,          y: 1, z:  5.85,         rotY: 0           },
 ];
 
 const allPortals = [];
@@ -160,10 +166,10 @@ portalDefs.forEach(({ rg, color, x, y, z, rotY }) => {
 let currentRoom = 0;
 let isSitting   = false;
 
-const camPos    = { 0:[0,1.6,4], 1:[0,1.6,4], 2:[0,1.6,4], 3:[0,1.6,4], 4:[0,1.9,0] };
-const camTarget = { 0:[0,1,-3],  1:[0,1,0],   2:[0,1,0],   3:[0,1,0],   4:[0,1.9,-2]  };
+const camPos    = { 0:[0,1.6,4], 1:[0,1.6,4], 2:[0,1.6,4], 3:[0,1.6,4], 4:[0,1.9,0], 5:[0,1.6,4] };
+const camTarget = { 0:[0,1,-3],  1:[0,1,0],   2:[0,1,0],   3:[0,1,0],   4:[0,1.9,-2], 5:[0,1.2,0] };
 const roomNames = { 0:"Угтах танхим", 1:"Лекцийн танхим", 2:"Сүлжээний лаборатори",
-                    3:"AR лаборатори", 4:"Компьютерийн лаборатори" };
+                    3:"AR лаборатори", 4:"Компьютерийн лаборатори", 5:"Номын сан" };
 
 window.goRoom = (n) => {
     isSitting = false;
@@ -240,15 +246,30 @@ controller.add(laserLine);
 const tempMatrix  = new THREE.Matrix4();
 const raycasterVR = new THREE.Raycaster();
 
-function handleKind(kind, isVR) {
+function handleKind(kind, isVR, clickedObj) {
     if (kind === "toLecture")  { window.goRoom(1); return true; }
     if (kind === "toNetLab")   { window.goRoom(2); return true; }
     if (kind === "toARLab")    { window.goRoom(3); return true; }
     if (kind === "toCompLab")  { window.goRoom(4); return true; }
     if (kind === "backDoor")   { window.goRoom(0); return true; }
     if (kind === "labDoor")    { window.goRoom(2); return true; }
+    if (kind === "toLibrary")  { window.goRoom(5); return true; }
     if (kind === "welcomeAudio") { lobby.userData.toggleWelcome?.(); return true; }
     if (kind === "roomAudio")    { roomMap[currentRoom].userData.toggleAudio?.(); return true; }
+    if (kind === "studentChair") {
+        const d = clickedObj?.userData;
+        if (!d) return true;
+        if (!isSitting) {
+            isSitting = true;
+            if (isVR) playerRig.position.set(d.sitX, -0.5, d.sitZ);
+            else { camera.position.set(d.sitX, d.sitY, d.sitZ);
+                   controls.target.set(d.lookX, d.lookY, d.lookZ); controls.update(); }
+        } else {
+            isSitting = false;
+            window.goRoom(currentRoom);
+        }
+        return true;
+    }
     if (kind === "teacherChair") {
         if (!isSitting) {
             isSitting = true;
@@ -296,18 +317,72 @@ controller.addEventListener("selectstart", () => {
 
     let obj = hits[0].object;
     while (obj) { if (obj.userData?.kind) break; obj = obj.parent; }
-    if (!obj?.userData?.kind) return;
 
-    if (!handleKind(obj.userData.kind, true)) {
-        if (currentRoom === 2) {
-            netLabR.userData.onClick?.(raycasterVR);
-        } else if (currentRoom === 3) {
-            arLabR.userData.onClick?.(raycasterVR);
-        } else if (obj.userData?.teleport) {
-            const point = hits[0].point;
-            playerRig.position.set(point.x, 0, point.z);
-        }
+    // Kind олдсон бол эхлээд handleKind-д өгнө
+    if (obj?.userData?.kind && handleKind(obj.userData.kind, true, obj)) return;
+
+    // Өрөөний тусгай onClick — kind олдсон эсэхээс үл хамааран дуудна
+    if (currentRoom === 2) { netLabR.userData.onClick?.(raycasterVR); return; }
+    if (currentRoom === 3) { arLabR.userData.onClick?.(raycasterVR); return; }
+    if (currentRoom === 5) { libraryR.userData.onClick?.(raycasterVR); return; }
+
+    // Телепорт
+    if (obj?.userData?.teleport) {
+        const point = hits[0].point;
+        playerRig.position.set(point.x, 0, point.z);
     }
+});
+
+// ======================
+// САМБАР ЗУРАХ — Лекцийн танхим
+// ======================
+let isDrawingBoard = false;
+let wasDrawing     = false;
+let lastBoardUV    = null;
+const boardRC      = new THREE.Raycaster();
+
+function doBoardDraw(clientX, clientY) {
+    if (currentRoom !== 1 || renderer.xr.isPresenting) return false;
+    if (!lectureR.userData.boardMesh) return false;
+    const mx = (clientX / window.innerWidth)  * 2 - 1;
+    const my = -(clientY / window.innerHeight) * 2 + 1;
+    boardRC.setFromCamera(new THREE.Vector2(mx, my), camera);
+    const hits = boardRC.intersectObject(lectureR.userData.boardMesh, false);
+    if (!hits.length || !hits[0].uv) return false;
+    const uv  = hits[0].uv;
+    const cvs = lectureR.userData.boardCvs;
+    const ctx = lectureR.userData.boardCtx;
+    const cx  = uv.x * cvs.width;
+    const cy  = (1 - uv.y) * cvs.height;
+    ctx.strokeStyle = lectureR.userData.chalkColor || "#f0f0dc";
+    ctx.lineWidth   = lectureR.userData.chalkSize  || 4;
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    if (lastBoardUV) {
+        ctx.beginPath();
+        ctx.moveTo(lastBoardUV.x, lastBoardUV.y);
+        ctx.lineTo(cx, cy);
+        ctx.stroke();
+    } else {
+        ctx.beginPath();
+        ctx.arc(cx, cy, (lectureR.userData.chalkSize || 4) / 2, 0, Math.PI * 2);
+        ctx.fillStyle = lectureR.userData.chalkColor || "#f0f0dc";
+        ctx.fill();
+    }
+    lastBoardUV = { x: cx, y: cy };
+    lectureR.userData.boardTex.needsUpdate = true;
+    return true;
+}
+
+window.addEventListener("mousedown", (e) => {
+    if (doBoardDraw(e.clientX, e.clientY)) isDrawingBoard = true;
+});
+window.addEventListener("mousemove", (e) => {
+    if (isDrawingBoard) doBoardDraw(e.clientX, e.clientY);
+});
+window.addEventListener("mouseup", () => {
+    wasDrawing     = isDrawingBoard;
+    isDrawingBoard = false;
+    lastBoardUV    = null;
 });
 
 // ======================
@@ -317,6 +392,7 @@ const mouse          = new THREE.Vector2();
 const raycasterMouse = new THREE.Raycaster();
 
 window.addEventListener("click", (event) => {
+    if (wasDrawing) { wasDrawing = false; return; }
     mouse.x =  (event.clientX / window.innerWidth)  * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycasterMouse.setFromCamera(mouse, camera);
@@ -329,12 +405,26 @@ window.addEventListener("click", (event) => {
     while (obj) { if (obj.userData?.kind) break; obj = obj.parent; }
 
     if (obj?.userData?.kind) {
-        if (handleKind(obj.userData.kind, false)) return;
+        if (handleKind(obj.userData.kind, false, obj)) return;
     }
 
     if (currentRoom === 2) netLabR.userData.onClick?.(raycasterMouse);
     if (currentRoom === 3) arLabR.userData.onClick?.(raycasterMouse);
+    if (currentRoom === 5) libraryR.userData.onClick?.(raycasterMouse);
 });
+
+// ======================
+// SCROLL — урагш/хойш хөдлөх
+// ======================
+window.addEventListener("wheel", (e) => {
+    if (renderer.xr.isPresenting) return;
+    const forward = new THREE.Vector3();
+    camera.getWorldDirection(forward);
+    const step = e.deltaY * 0.004;
+    camera.position.addScaledVector(forward, -step);
+    controls.target.addScaledVector(forward, -step);
+    controls.update();
+}, { passive: true });
 
 // ======================
 // KEYBOARD
@@ -353,11 +443,95 @@ window.addEventListener("resize", () => {
 });
 
 // ======================
+// ХАМГИЙН ОЙР САНДАЛ — VR суух
+// ======================
+function sitNearestChair() {
+    if (isSitting) return;
+    const activeRoom = roomMap[currentRoom];
+    let bestData = null, bestDist = Infinity;
+    const playerPos = new THREE.Vector3();
+    playerRig.getWorldPosition(playerPos);
+    activeRoom.traverse(child => {
+        if (child.userData?.kind === 'studentChair') {
+            const d = child.userData;
+            const dx = playerPos.x - d.sitX, dz = playerPos.z - d.sitZ;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist < bestDist) { bestDist = dist; bestData = d; }
+        }
+    });
+    if (bestData && bestDist < 3.0) {
+        isSitting = true;
+        playerRig.position.set(bestData.sitX, -0.5, bestData.sitZ);
+    }
+}
+
+// ======================
+// VR GAMEPAD — товч болон жойстик
+// ======================
+const prevBtnState = {};
+
+function checkVRButtons() {
+    if (!renderer.xr.isPresenting) return;
+    const session = renderer.xr.getSession();
+    if (!session) return;
+
+    for (const src of session.inputSources) {
+        if (!src.gamepad) continue;
+
+        // Товч шалгах (edge-triggered — зөвхөн дарах мөчид)
+        src.gamepad.buttons.forEach((btn, i) => {
+            const key = `${src.handedness}_${i}`;
+            const wasPressed = prevBtnState[key] || false;
+            if (btn.pressed && !wasPressed) {
+                if (currentRoom === 2) {
+                    // Сүлжээний лаборатори — кабель сонгох
+                    if (src.handedness === 'left') {
+                        if (i === 4) netLabR.userData.selectCable?.('straight');   // X
+                        if (i === 5) netLabR.userData.selectCable?.('crossover');  // Y
+                    }
+                    if (src.handedness === 'right') {
+                        if (i === 4) netLabR.userData.selectCable?.('console');    // A
+                        if (i === 5) netLabR.userData.selectCable?.('serial');     // B
+                    }
+                } else {
+                    // Бусад өрөөнд — сандал суух/босох
+                    if (src.handedness === 'left') {
+                        if (i === 4) sitNearestChair();           // X → суух
+                        if (i === 5) { isSitting = false; window.goRoom(currentRoom); } // Y → босох
+                    }
+                }
+            }
+            prevBtnState[key] = btn.pressed;
+        });
+
+        // Зүүн жойстик — тоглогчийн хөдөлгөөн (бүх өрөөнд)
+        if (src.handedness === 'left' && src.gamepad.axes.length >= 4) {
+            const ax = src.gamepad.axes[2];
+            const az = src.gamepad.axes[3];
+            const DEAD = 0.12;
+            const SPEED = 0.04;
+            if (Math.abs(ax) > DEAD || Math.abs(az) > DEAD) {
+                const forward = new THREE.Vector3();
+                camera.getWorldDirection(forward);
+                forward.y = 0;
+                forward.normalize();
+                const right = new THREE.Vector3();
+                right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
+                playerRig.position.addScaledVector(right, ax * SPEED);
+                playerRig.position.addScaledVector(forward, -az * SPEED);
+            }
+        }
+    }
+}
+
+// ======================
 // ANIMATION LOOP
 // ======================
 renderer.setAnimationLoop(() => {
     const delta = clock.getDelta();
     const t     = performance.now() * 0.001;
+
+    checkVRButtons();
 
     allPortals.forEach(p => p.userData.update?.(t));
 
@@ -366,6 +540,7 @@ renderer.setAnimationLoop(() => {
     if (currentRoom === 2) netLabR.userData.update?.(delta, camera);
     if (currentRoom === 3) arLabR.userData.update?.(camera);
     if (currentRoom === 4) compLabR.userData.update?.(camera);
+    if (currentRoom === 5) libraryR.userData.update?.(camera);
 
     if (!renderer.xr.isPresenting) controls.update();
     renderer.render(scene, camera);

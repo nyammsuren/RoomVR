@@ -621,8 +621,15 @@ export function createRoom3(scene, camera, renderer) {
         const hits = raycaster.intersectObjects(room.children, true);
         if (!hits.length) return;
 
-        let obj = hits[0].object;
-        while (obj && !obj.userData?.kind) obj = obj.parent;
+        // Hits бүрийг сканнална — frame/border шиг kind-гүй объект алгасна
+        let obj = null;
+        for (const hit of hits) {
+            let o = hit.object;
+            while (o && !o.userData?.kind) o = o.parent;
+            if (o?.userData?.kind === 'cable' || o?.userData?.kind === 'device') {
+                obj = o; break;
+            }
+        }
         if (!obj) return;
 
         const k = obj.userData.kind;
@@ -793,6 +800,63 @@ export function createRoom3(scene, camera, renderer) {
     };
 
     room.userData.onKey = () => {};
+
+    // ======================
+    // VR ТОВЧ ФУНКЦҮҮД
+    // ======================
+    const routerPowerState = {};
+    DEVICE_DEFS.filter(d => d.type === 'router').forEach(d => { routerPowerState[d.id] = true; });
+
+    // X товч — Straight кабель сонгох
+    // Y товч — Crossover кабель сонгох
+    room.userData.selectCable = (id) => {
+        const cd = CABLE_DEFS.find(c => c.id === id);
+        if (!cd) return;
+        selectedCable = id;
+        selectedDevice = null;
+        setSelRing(null);
+        setCableHighlight(id);
+        renderStatus(`${cd.label} сонгогдлоо`, '1-р төхөөрөмжийг дарна уу', cd.hex);
+        showFeedback(`${cd.label} кабель сонгогдлоо`, 'ok');
+    };
+
+    // B товч — Сүүлийн холболтыг арилгах
+    room.userData.undoLastConnection = () => {
+        if (!connections.length) {
+            showFeedback('Арилгах холболт байхгүй', 'warn');
+            return;
+        }
+        const c = connections[connections.length - 1];
+        if (c.valid) {
+            const key = pairKey(c.devA.id, c.devB.id);
+            connectedPairs.delete(key);
+            score = Math.max(0, score - 1);
+            renderScore();
+        }
+        room.remove(c.line);
+        c.dots.forEach(dot => room.remove(dot));
+        connections.pop();
+        selectedCable = null;
+        selectedDevice = null;
+        setSelRing(null);
+        setCableHighlight(null);
+        showFeedback('Сүүлийн холболт арилгагдлаа', 'warn');
+        renderStatus('Кабель сонгоно уу', 'ханан дээр байгаа кабелиас нэгийг сонгоно уу');
+    };
+
+    // A товч — Router 1 асаах/унтраах
+    room.userData.toggleRouterPower = () => {
+        routerPowerState['router1'] = !routerPowerState['router1'];
+        const on = routerPowerState['router1'];
+        const dev = deviceObjects.find(d => d.id === 'router1');
+        if (!dev) return;
+        dev.mesh.traverse(child => {
+            if (child.isMesh && child.material?.emissive) {
+                child.material.emissiveIntensity = on ? 2 : 0;
+            }
+        });
+        showFeedback(`Router 1 ${on ? 'асаагдлаа ✓' : 'унтрагдлаа'}`, on ? 'ok' : 'warn');
+    };
 
     return room;
 }

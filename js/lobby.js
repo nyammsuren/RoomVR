@@ -91,12 +91,13 @@ export function createLobby(scene) {
     vrWelcomeMesh.position.set(0, RH - 3.5, -RD / 2 + 0.04);
     room.add(vrWelcomeMesh);
 
-    // 4 ХААЛГА
+    // 5 ХААЛГА
     const doorDefs = [
-        { kind: "toLecture",  color: 0x2266dd, hex: "#2266dd", x: -3,          z: -RD / 2 + 0.12, ry: 0,           label: "Лекцийн танхим" },
-        { kind: "toNetLab",   color: 0x229944, hex: "#229944", x:  3,          z: -RD / 2 + 0.12, ry: 0,           label: "Сүлжээний лаборатори" },
-        { kind: "toARLab",    color: 0xbb33aa, hex: "#bb33aa", x: -RW / 2 + 0.12, z: -2,          ry: Math.PI / 2, label: "AR лаборатори" },
-        { kind: "toCompLab",  color: 0xff6600, hex: "#ff6600", x:  RW / 2 - 0.12, z: -2,          ry:-Math.PI / 2, label: "Компьютерийн лаборатори" },
+        { kind: "toLecture",  color: 0x2266dd, hex: "#2266dd", x: -3,             z: -RD / 2 + 0.12, ry: 0,            label: "Лекцийн танхим" },
+        { kind: "toNetLab",   color: 0x229944, hex: "#229944", x:  3,             z: -RD / 2 + 0.12, ry: 0,            label: "Сүлжээний лаборатори" },
+        { kind: "toARLab",    color: 0xbb33aa, hex: "#bb33aa", x: -RW / 2 + 0.12, z: -2,            ry: Math.PI / 2,  label: "AR лаборатори" },
+        { kind: "toCompLab",  color: 0xff6600, hex: "#ff6600", x:  RW / 2 - 0.12, z: -2,            ry:-Math.PI / 2,  label: "Компьютерийн лаборатори" },
+        { kind: "toLibrary",  color: 0xddaa00, hex: "#ddaa00", x:  RW / 2 - 0.12, z:  2,            ry:-Math.PI / 2,  label: "Номын сан" },
     ];
 
     const glowLights = [];
@@ -236,8 +237,102 @@ export function createLobby(scene) {
         }
     };
 
+    // ЦАГ — урд хана, МУБИС бичгийн доор (дугуй цаг)
+    const clockCvs = document.createElement("canvas");
+    clockCvs.width = 256; clockCvs.height = 256;
+    const clockCtx = clockCvs.getContext("2d");
+    const clockTex = new THREE.CanvasTexture(clockCvs);
+    let lastClockSec = -1;
+
+    function drawClock() {
+        const now = new Date();
+        const h = now.getHours() % 12;
+        const m = now.getMinutes();
+        const s = now.getSeconds();
+        const cx = 128, cy = 128, R = 112;
+
+        clockCtx.clearRect(0, 0, 256, 256);
+
+        // Цагны нүүр — бараан тойрог
+        clockCtx.fillStyle = "rgba(8, 18, 40, 0.88)";
+        clockCtx.beginPath();
+        clockCtx.arc(cx, cy, R, 0, Math.PI * 2);
+        clockCtx.fill();
+
+        // Алтан тойрог хүрээ
+        clockCtx.strokeStyle = "#f0c040";
+        clockCtx.lineWidth = 4;
+        clockCtx.beginPath();
+        clockCtx.arc(cx, cy, R, 0, Math.PI * 2);
+        clockCtx.stroke();
+
+        // Цагны тэмдэглэгээ (12 цэг)
+        for (let i = 0; i < 12; i++) {
+            const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+            const big = i % 3 === 0;
+            clockCtx.strokeStyle = "#f0c040";
+            clockCtx.lineWidth = big ? 3.5 : 1.5;
+            const r0 = R - (big ? 22 : 13);
+            clockCtx.beginPath();
+            clockCtx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+            clockCtx.lineTo(cx + Math.cos(a) * (R - 5), cy + Math.sin(a) * (R - 5));
+            clockCtx.stroke();
+        }
+
+        // Цагны гар — минут
+        const mAngle = ((m + s / 60) / 60) * Math.PI * 2 - Math.PI / 2;
+        clockCtx.strokeStyle = "#f0c040";
+        clockCtx.lineWidth = 4;
+        clockCtx.lineCap = "round";
+        clockCtx.beginPath();
+        clockCtx.moveTo(cx, cy);
+        clockCtx.lineTo(cx + Math.cos(mAngle) * 86, cy + Math.sin(mAngle) * 86);
+        clockCtx.stroke();
+
+        // Цагны гар — цаг
+        const hAngle = ((h + m / 60) / 12) * Math.PI * 2 - Math.PI / 2;
+        clockCtx.strokeStyle = "#f0c040";
+        clockCtx.lineWidth = 7;
+        clockCtx.beginPath();
+        clockCtx.moveTo(cx, cy);
+        clockCtx.lineTo(cx + Math.cos(hAngle) * 58, cy + Math.sin(hAngle) * 58);
+        clockCtx.stroke();
+
+        // Цагны гар — секунд
+        const sAngle = (s / 60) * Math.PI * 2 - Math.PI / 2;
+        clockCtx.strokeStyle = "#ff5533";
+        clockCtx.lineWidth = 2;
+        clockCtx.beginPath();
+        clockCtx.moveTo(cx - Math.cos(sAngle) * 22, cy - Math.sin(sAngle) * 22);
+        clockCtx.lineTo(cx + Math.cos(sAngle) * 96, cy + Math.sin(sAngle) * 96);
+        clockCtx.stroke();
+
+        // Төв цэг
+        clockCtx.fillStyle = "#f0c040";
+        clockCtx.beginPath();
+        clockCtx.arc(cx, cy, 7, 0, Math.PI * 2);
+        clockCtx.fill();
+        clockCtx.fillStyle = "#ff5533";
+        clockCtx.beginPath();
+        clockCtx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+        clockCtx.fill();
+
+        clockTex.needsUpdate = true;
+    }
+    drawClock();
+
+    const clockMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.4, 1.4),
+        new THREE.MeshBasicMaterial({ map: clockTex, transparent: true })
+    );
+    // МУБИС бичгийн доор, урд хана дээр
+    clockMesh.position.set(0, RH - 4.0, -RD / 2 + 0.06);
+    room.add(clockMesh);
+
     room.userData.update = (camera) => {
         const t = performance.now() * 0.001;
+        const sec = Math.floor(t);
+        if (sec !== lastClockSec) { lastClockSec = sec; drawClock(); }
         glowLights.forEach(({ light, base }, i) => {
             light.intensity = base + Math.sin(t * 1.2 + i * 0.7) * 0.2;
         });

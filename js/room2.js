@@ -280,10 +280,11 @@ export function createRoom2(scene) {
     boardFrame.position.set(-RW / 2 + 0.01, 2.2, -1.5);
     room.add(boardFrame);
 
+    const boardTex = new THREE.CanvasTexture(boardCvs);
     const boardMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(3.5, 2.2),
         new THREE.MeshBasicMaterial({
-            map: new THREE.CanvasTexture(boardCvs),
+            map: boardTex,
             polygonOffset: true,
             polygonOffsetFactor: -2,
             polygonOffsetUnits: -2,
@@ -323,11 +324,16 @@ export function createRoom2(scene) {
         [[x, 0.75, z, 1, 0.05, 0.6],
          [x, 0.48, z + 0.55, 0.5, 0.04, 0.45],
          [x, 0.70, z + 0.77, 0.5, 0.40, 0.04]
-        ].forEach(([px, py, pz, w, h, d]) => {
+        ].forEach(([px, py, pz, w, h, d], idx) => {
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), dm);
             mesh.position.set(px, py, pz);
             mesh.castShadow = false;
             mesh.receiveShadow = true;
+            if (idx === 1) {
+                mesh.userData = { kind: "studentChair",
+                    sitX: px, sitY: 1.1, sitZ: pz + 0.2,
+                    lookX: -5.5, lookY: 1.7, lookZ: -1.5 };
+            }
             room.add(mesh);
         });
 
@@ -899,6 +905,14 @@ export function createRoom2(scene) {
         if (roomAudio2.paused) { roomAudio2.currentTime = 0; roomAudio2.play(); }
         else { roomAudio2.pause(); }
     };
+
+    // Самбарын зурах боломж — main.js-д ашиглана
+    room.userData.boardMesh  = boardMesh;
+    room.userData.boardCtx   = bc;
+    room.userData.boardTex   = boardTex;
+    room.userData.boardCvs   = boardCvs;
+    room.userData.chalkColor = "#f0f0dc";
+    room.userData.chalkSize  = 4;
 
     // UPDATE LOOP
     // ======================
