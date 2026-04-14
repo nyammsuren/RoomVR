@@ -640,6 +640,7 @@ export function createRoom2(scene) {
 
     room.userData.toggleVideo = () => {
         if (vid.paused) {
+            vid.muted = false;
             vid.play().catch(e => console.warn("Video play:", e));
         } else {
             vid.pause();
@@ -905,6 +906,166 @@ export function createRoom2(scene) {
     room.userData.boardCvs   = boardCvs;
     room.userData.chalkColor = "#f0f0dc";
     room.userData.chalkSize  = 4;
+
+    // ======================
+    // ТЕСТ СИСТЕМ
+    // ======================
+    const QUIZ = [
+        { q: "OSI загварын хэдэн давхарга байдаг вэ?",
+          opts: ["A) 5", "B) 6", "C) 7", "D) 8"], ans: 2 },
+        { q: "TCP протокол ямар онцлогтой вэ?",
+          opts: ["A) Хурдан, баталгаагүй", "B) Найдвартай, дарааллалтай", "C) Broadcast дамжуулдаг", "D) Connectionless"], ans: 1 },
+        { q: "Subnet mask 255.255.255.0 — хэдэн хост байх вэ?",
+          opts: ["A) 254", "B) 256", "C) 128", "D) 512"], ans: 0 },
+        { q: "DHCP юу хийдэг вэ?",
+          opts: ["A) DNS орчуулдаг", "B) IP хаяг автоматаар олгодог", "C) Пакет шүүдэг", "D) Маршрут тохируулдаг"], ans: 1 },
+        { q: "Default gateway гэж юу вэ?",
+          opts: ["A) DNS сервер", "B) Нэрийн сервер", "C) Өөр сүлжээ рүү гарах рутер", "D) DHCP сервер"], ans: 2 },
+        { q: "MAC хаяг хэдэн бит байдаг вэ?",
+          opts: ["A) 32 бит", "B) 48 бит", "C) 64 бит", "D) 128 бит"], ans: 1 },
+        { q: "HTTP ямар портыг ашигладаг вэ?",
+          opts: ["A) 21", "B) 25", "C) 80", "D) 443"], ans: 2 },
+        { q: "Switch ямар хаягаар дамжуулдаг вэ?",
+          opts: ["A) IP хаяг", "B) MAC хаяг", "C) Port дугаар", "D) URL"], ans: 1 },
+    ];
+
+    const qCvs = document.createElement("canvas");
+    qCvs.width = 1024; qCvs.height = 768;
+    const qCtx = qCvs.getContext("2d");
+    const qTex = new THREE.CanvasTexture(qCvs);
+
+    const qPanel = new THREE.Mesh(
+        new THREE.PlaneGeometry(3.5, 2.6),
+        new THREE.MeshBasicMaterial({ map: qTex, transparent: true })
+    );
+    qPanel.position.set(0, 2.5, RD/2 - 0.08);
+    qPanel.rotation.y = Math.PI;
+    qPanel.visible = false;
+    room.add(qPanel);
+
+    let qIdx = 0, qScore = 0, qActive = false, qDone = false;
+
+    function drawQuiz() {
+        const W = 1024, H = 768;
+        qCtx.fillStyle = "#0f172a";
+        qCtx.beginPath();
+        if (qCtx.roundRect) qCtx.roundRect(8,8,W-16,H-16,20); else qCtx.rect(8,8,W-16,H-16);
+        qCtx.fill();
+        qCtx.strokeStyle = "#3b82f6"; qCtx.lineWidth = 5; qCtx.stroke();
+
+        if (qDone) {
+            qCtx.fillStyle = "#ffffff"; qCtx.font = "bold 58px Arial"; qCtx.textAlign = "center";
+            qCtx.fillText("Шалгалт дууслаа!", W/2, 200);
+            const pct = Math.round(qScore/QUIZ.length*100);
+            const col = pct>=80?"#22c55e":pct>=50?"#f59e0b":"#ef4444";
+            qCtx.fillStyle = col; qCtx.font = "bold 100px Arial";
+            qCtx.fillText(`${qScore}/${QUIZ.length}`, W/2, 340);
+            qCtx.fillStyle = "#94a3b8"; qCtx.font = "42px Arial";
+            qCtx.fillText(`${pct}% — ${pct>=80?"Маш сайн!":pct>=50?"Дундаж":"Дахин үзнэ үү"}`, W/2, 430);
+            qCtx.fillStyle = "#3b82f6"; qCtx.font = "bold 36px Arial";
+            qCtx.fillText("[ Дахин эхлэх ]", W/2, 560);
+            qTex.needsUpdate = true;
+            return;
+        }
+
+        // Явц
+        qCtx.fillStyle = "#334155"; qCtx.fillRect(40, 30, W-80, 18);
+        qCtx.fillStyle = "#3b82f6"; qCtx.fillRect(40, 30, (W-80)*(qIdx/QUIZ.length), 18);
+        qCtx.fillStyle = "#94a3b8"; qCtx.font = "24px Arial"; qCtx.textAlign = "right";
+        qCtx.fillText(`${qIdx+1} / ${QUIZ.length}`, W-40, 24);
+
+        // Асуулт
+        const q = QUIZ[qIdx];
+        qCtx.fillStyle = "#f1f5f9"; qCtx.font = "bold 36px Arial"; qCtx.textAlign = "center";
+        const words = q.q.split(" "); let line="", lines=[];
+        words.forEach(w => { const t=line+w+" "; if(qCtx.measureText(t).width>880){lines.push(line);line=w+" ";}else line=t;});
+        lines.push(line);
+        lines.forEach((l,i) => qCtx.fillText(l.trim(), W/2, 110+i*44));
+
+        // Хариултууд
+        q.opts.forEach((opt, i) => {
+            const oy = 280 + i * 110;
+            qCtx.fillStyle = "#1e3a5f";
+            qCtx.beginPath();
+            if(qCtx.roundRect) qCtx.roundRect(60,oy,W-120,88,12); else qCtx.rect(60,oy,W-120,88);
+            qCtx.fill();
+            qCtx.strokeStyle = "#3b82f6"; qCtx.lineWidth = 2; qCtx.stroke();
+            qCtx.fillStyle = "#e2e8f0"; qCtx.font = "bold 34px Arial"; qCtx.textAlign = "center";
+            qCtx.fillText(opt, W/2, oy+53);
+        });
+        qTex.needsUpdate = true;
+    }
+
+    // Товч сонгох (0-3 хариулт)
+    room.userData.answerQuiz = (optIdx) => {
+        if (!qActive || qDone) return;
+        if (optIdx === QUIZ[qIdx].ans) qScore++;
+        qIdx++;
+        if (qIdx >= QUIZ.length) { qDone = true; drawQuiz(); return; }
+        drawQuiz();
+    };
+
+    // Тест нэмэлт товч → арын хана дээр
+    const qBtnCvs = document.createElement("canvas");
+    qBtnCvs.width = 256; qBtnCvs.height = 96;
+    const qbc = qBtnCvs.getContext("2d");
+    qbc.fillStyle = "#1d4ed8"; qbc.beginPath();
+    if(qbc.roundRect) qbc.roundRect(4,4,248,88,14); else qbc.rect(4,4,248,88);
+    qbc.fill();
+    qbc.strokeStyle = "#60a5fa"; qbc.lineWidth = 3; qbc.stroke();
+    qbc.fillStyle = "#fff"; qbc.font = "bold 38px Arial"; qbc.textAlign = "center"; qbc.textBaseline = "middle";
+    qbc.fillText("Шалгалт", 128, 48);
+    const qBtn = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.2, 0.45),
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(qBtnCvs), transparent: true })
+    );
+    qBtn.position.set(0, 3.6, RD/2 - 0.06);
+    qBtn.rotation.y = Math.PI;
+    qBtn.userData = { kind: "quizBtn" };
+    room.add(qBtn);
+
+    // Хариулт товчнуудын hit meshes (хяналтын тэгш өнцөгтүүд)
+    const ansHitBoxes = [0,1,2,3].map(i => {
+        const m = new THREE.Mesh(
+            new THREE.PlaneGeometry(3.3, 0.7),
+            new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+        );
+        m.position.set(0, 2.5 + 0.5 - i * 0.67, RD/2 - 0.07);
+        m.rotation.y = Math.PI;
+        m.userData = { kind: "quizAns", ansIdx: i };
+        room.add(m);
+        return m;
+    });
+
+    room.userData.onClick = (raycaster) => {
+        const hits = raycaster.intersectObjects(room.children, true);
+        for (const hit of hits) {
+            let obj = hit.object;
+            while (obj && !obj.userData?.kind) obj = obj.parent;
+            if (!obj?.userData?.kind) continue;
+            if (obj.userData.kind === "quizBtn") {
+                if (!qActive) {
+                    qActive = true; qIdx = 0; qScore = 0; qDone = false;
+                    qPanel.visible = true;
+                    ansHitBoxes.forEach(m => { m.visible = true; });
+                    drawQuiz();
+                } else {
+                    qActive = false; qPanel.visible = false;
+                    ansHitBoxes.forEach(m => { m.visible = false; });
+                }
+                return;
+            }
+            if (obj.userData.kind === "quizAns" && qActive) {
+                if (qDone) {
+                    qIdx = 0; qScore = 0; qDone = false; drawQuiz();
+                } else {
+                    room.userData.answerQuiz(obj.userData.ansIdx);
+                }
+                return;
+            }
+        }
+    };
+    ansHitBoxes.forEach(m => { m.visible = false; });
 
     // UPDATE LOOP
     // ======================

@@ -236,18 +236,48 @@ function checkPortalProximity() {
 // ======================
 // VR CONTROLLER
 // ======================
-const controller = renderer.xr.getController(1);
-scene.add(controller);
+const controller0 = renderer.xr.getController(0);
+const controller1 = renderer.xr.getController(1);
+playerRig.add(controller0);
+playerRig.add(controller1);
 
 const laserLine = new THREE.Line(
     new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-1)]),
     new THREE.LineBasicMaterial({ color: 0x00ffcc })
 );
 laserLine.scale.z = 15;
-controller.add(laserLine);
+// Laser-г баруун гарт (controller1) нэм, хэрэв холбогдоогүй бол controller0-д
+controller1.add(laserLine);
 
 const tempMatrix  = new THREE.Matrix4();
 const raycasterVR = new THREE.Raycaster();
+
+// Хоёр controller-т ч trigger дарах сонсгол нэм
+function handleControllerSelect(ctrl) {
+    tempMatrix.identity().extractRotation(ctrl.matrixWorld);
+    raycasterVR.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
+    raycasterVR.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+
+    const activeRoom = roomMap[currentRoom];
+    const hits = raycasterVR.intersectObjects(activeRoom.children, true);
+    if (!hits.length) return;
+
+    let obj = hits[0].object;
+    while (obj) { if (obj.userData?.kind) break; obj = obj.parent; }
+
+    if (obj?.userData?.kind && handleKind(obj.userData.kind, true, obj)) return;
+
+    if (currentRoom === 1) { lectureR.userData.onClick?.(raycasterVR); return; }
+    if (currentRoom === 2) { netLabR.userData.onClick?.(raycasterVR); return; }
+    if (currentRoom === 3) { arLabR.userData.onClick?.(raycasterVR); return; }
+    if (currentRoom === 4) { compLabR.userData.onClick?.(raycasterVR); return; }
+    if (currentRoom === 5) { libraryR.userData.onClick?.(raycasterVR); return; }
+
+    if (obj?.userData?.teleport) {
+        const point = hits[0].point;
+        playerRig.position.set(point.x, 0, point.z);
+    }
+}
 
 window.endVR = () => renderer.xr.getSession()?.end();
 
@@ -312,32 +342,8 @@ function handleKind(kind, isVR, clickedObj) {
     return false;
 }
 
-controller.addEventListener("selectstart", () => {
-    tempMatrix.identity().extractRotation(controller.matrixWorld);
-    raycasterVR.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-    raycasterVR.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-
-    const activeRoom = roomMap[currentRoom];
-    const hits = raycasterVR.intersectObjects(activeRoom.children, true);
-    if (!hits.length) return;
-
-    let obj = hits[0].object;
-    while (obj) { if (obj.userData?.kind) break; obj = obj.parent; }
-
-    // Kind олдсон бол эхлээд handleKind-д өгнө
-    if (obj?.userData?.kind && handleKind(obj.userData.kind, true, obj)) return;
-
-    // Өрөөний тусгай onClick — kind олдсон эсэхээс үл хамааран дуудна
-    if (currentRoom === 2) { netLabR.userData.onClick?.(raycasterVR); return; }
-    if (currentRoom === 3) { arLabR.userData.onClick?.(raycasterVR); return; }
-    if (currentRoom === 5) { libraryR.userData.onClick?.(raycasterVR); return; }
-
-    // Телепорт
-    if (obj?.userData?.teleport) {
-        const point = hits[0].point;
-        playerRig.position.set(point.x, 0, point.z);
-    }
-});
+controller0.addEventListener("selectstart", () => handleControllerSelect(controller0));
+controller1.addEventListener("selectstart", () => handleControllerSelect(controller1));
 
 // ======================
 // САМБАР ЗУРАХ — Лекцийн танхим
@@ -414,8 +420,10 @@ window.addEventListener("click", (event) => {
         if (handleKind(obj.userData.kind, false, obj)) return;
     }
 
+    if (currentRoom === 1) lectureR.userData.onClick?.(raycasterMouse);
     if (currentRoom === 2) netLabR.userData.onClick?.(raycasterMouse);
     if (currentRoom === 3) arLabR.userData.onClick?.(raycasterMouse);
+    if (currentRoom === 4) compLabR.userData.onClick?.(raycasterMouse);
     if (currentRoom === 5) libraryR.userData.onClick?.(raycasterMouse);
 });
 

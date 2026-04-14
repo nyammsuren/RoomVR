@@ -208,12 +208,21 @@ export function createRoom5(scene) {
         mon.castShadow = true;
         room.add(mon);
 
-        // Дэлгэц — "Дадлага ажил"
+        // Дэлгэц — өөрийн terminal canvas-тай
+        const scrCvs = document.createElement("canvas");
+        scrCvs.width = 512; scrCvs.height = 320;
+        const scrCtx = scrCvs.getContext("2d");
+        // Анхны дэлгэцийн агуулга (stuScrCvs-аас хуулна)
+        scrCtx.drawImage(stuScrCvs, 0, 0, 512, 320);
+        const scrTex = new THREE.CanvasTexture(scrCvs);
+        scrTex.needsUpdate = true;
+
         const scr = new THREE.Mesh(
             new THREE.PlaneGeometry(0.55, 0.36),
-            new THREE.MeshBasicMaterial({ map: stuScrTex })
+            new THREE.MeshBasicMaterial({ map: scrTex })
         );
-        scr.position.set(x, 1.145, z - 0.088);
+        scr.position.set(x, 1.145, z - 0.075);
+        scr.userData = { kind: "compScreen", deskX: x, deskZ: z, scrCvs, scrCtx, scrTex };
         room.add(scr);
 
         // Монитор зогдол
@@ -692,6 +701,225 @@ export function createRoom5(scene) {
     room.userData.toggleAudio = () => {
         if (roomAudio5.paused) { roomAudio5.currentTime = 0; roomAudio5.play(); }
         else { roomAudio5.pause(); }
+    };
+
+    // ======================
+    // TERMINAL СИСТЕМ — дэлгэц дотор
+    // ======================
+    let activeScr = null; // идэвхтэй монитор
+
+    const COMMANDS = {
+        help: () => [
+            "Боломжтой командууд:",
+            "  ipconfig     — IP тохиргоо харах",
+            "  ping <host>  — хост шалгах",
+            "  tracert <ip> — маршрут харах",
+            "  arp -a       — ARP хүснэгт",
+            "  netstat      — нээлттэй портууд",
+            "  cls / clear  — цэвэрлэх",
+            "  exit         — терминал хаах",
+        ],
+        ipconfig: () => [
+            "Windows IP Configuration",
+            "",
+            "Ethernet adapter Ethernet0:",
+            "   IPv4 Address  . . . : 192.168.1.105",
+            "   Subnet Mask . . . . : 255.255.255.0",
+            "   Default Gateway . . : 192.168.1.1",
+            "",
+            "DNS Servers . . . . . . : 8.8.8.8",
+            "                          8.8.4.4",
+        ],
+        arp: () => [
+            "Interface: 192.168.1.105 --- 0x3",
+            "  Internet Address    Physical Address    Type",
+            "  192.168.1.1         00-14-22-01-23-45   dynamic",
+            "  192.168.1.100       00-1A-2B-3C-4D-5E   dynamic",
+            "  192.168.1.255       ff-ff-ff-ff-ff-ff   static",
+        ],
+        netstat: () => [
+            "Active Connections",
+            "",
+            "  Proto  Local Addr       Foreign Addr      State",
+            "  TCP    192.168.1.105:80  0.0.0.0:0        LISTENING",
+            "  TCP    192.168.1.105:443 0.0.0.0:0        LISTENING",
+            "  TCP    192.168.1.105:53  8.8.8.8:53       ESTABLISHED",
+            "  UDP    192.168.1.105:68  192.168.1.1:67   —",
+        ],
+    };
+
+    let termLines = [];
+    let termOpen = false;
+
+    function drawTerminal() {
+        if (!activeScr) return;
+        const ctx = activeScr.userData.scrCtx;
+        const tex = activeScr.userData.scrTex;
+        const W = 512, H = 320;
+        ctx.fillStyle = "#0d1117";
+        ctx.fillRect(0, 0, W, H);
+        // Гарчгийн мөр
+        ctx.fillStyle = "#1f2937";
+        ctx.fillRect(0, 0, W, 18);
+        ctx.fillStyle = "#ff5f57"; ctx.beginPath(); ctx.arc(8, 9, 4, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#febc2e"; ctx.beginPath(); ctx.arc(20, 9, 4, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#28c840"; ctx.beginPath(); ctx.arc(32, 9, 4, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#8b9eb0"; ctx.font = "9px monospace"; ctx.textAlign = "center";
+        ctx.fillText("cmd.exe", W/2, 12);
+        // Мөрүүд
+        ctx.textAlign = "left"; ctx.font = "9px monospace";
+        const maxLines = 28;
+        const visible = termLines.slice(-maxLines);
+        visible.forEach((line, i) => {
+            ctx.fillStyle = line.startsWith("C:\\>") ? "#00ff88" : "#c9d1d9";
+            ctx.fillText(line, 6, 30 + i * 10);
+        });
+        // Cursor
+        ctx.fillStyle = "#00ff88";
+        ctx.fillText("C:\\> _", 6, 30 + visible.length * 10);
+        tex.needsUpdate = true;
+    }
+
+    function runCommand(cmd) {
+        const parts = cmd.trim().toLowerCase().split(" ");
+        const base = parts[0];
+        termLines.push("C:\\> " + cmd);
+        if (base === "cls" || base === "clear") { termLines = []; drawTerminal(); return; }
+        if (base === "exit") { closeTerminal(); return; }
+        if (base === "ping") {
+            const host = parts[1] || "192.168.1.1";
+            termLines.push(`Pinging ${host} with 32 bytes of data:`);
+            ["64ms","71ms","68ms","70ms"].forEach((t,i) =>
+                termLines.push(`Reply from ${host}: bytes=32 time=${t} TTL=64`));
+            termLines.push(`Ping statistics: Packets: Sent=4, Received=4, Lost=0 (0% loss)`);
+        } else if (base === "tracert") {
+            const host = parts[1] || "8.8.8.8";
+            termLines.push(`Tracing route to ${host}:`);
+            [["1","192.168.1.1","1ms"],["2","10.0.0.1","8ms"],["3","72.14.215.1","22ms"],["4",host,"35ms"]].forEach(([n,ip,t]) =>
+                termLines.push(`  ${n.padEnd(3)} ${t.padEnd(8)} ${ip}`));
+            termLines.push("Trace complete.");
+        } else if (COMMANDS[base]) {
+            COMMANDS[base]().forEach(l => termLines.push(l));
+        } else if (base === "") {
+            // хоосон
+        } else {
+            termLines.push(`'${cmd}' is not recognized as a command.`);
+            termLines.push("Type 'help' for available commands.");
+        }
+        termLines.push("");
+        drawTerminal();
+    }
+
+    // VR товч товчнууд
+    const VR_CMDS = [
+        { label: "ipconfig",      cmd: "ipconfig" },
+        { label: "ping 8.8.8.8", cmd: "ping 8.8.8.8" },
+        { label: "arp -a",        cmd: "arp" },
+        { label: "netstat",       cmd: "netstat" },
+        { label: "tracert",       cmd: "tracert 8.8.8.8" },
+        { label: "help",          cmd: "help" },
+        { label: "clear",         cmd: "clear" },
+        { label: "✕ exit",        cmd: "exit" },
+    ];
+
+    const cmdBtnGroup = new THREE.Group();
+    cmdBtnGroup.visible = false;
+    room.add(cmdBtnGroup);
+
+    // 4 багана × 2 эгнээ — ширээн дээр хэвтэлгүүлж байрлуулна
+    VR_CMDS.forEach(({ label, cmd }, i) => {
+        const bc = document.createElement("canvas");
+        bc.width = 256; bc.height = 80;
+        const bx = bc.getContext("2d");
+        const isExit = label.startsWith("✕");
+        bx.fillStyle = isExit ? "#7f1d1d" : "#1a3050";
+        bx.beginPath();
+        if (bx.roundRect) bx.roundRect(3, 3, 250, 74, 8); else bx.rect(3, 3, 250, 74);
+        bx.fill();
+        bx.strokeStyle = isExit ? "#ef4444" : "#38bdf8";
+        bx.lineWidth = 3; bx.stroke();
+        bx.fillStyle = "#e2e8f0"; bx.font = "bold 24px monospace";
+        bx.textAlign = "center"; bx.textBaseline = "middle";
+        bx.fillText(label, 128, 40);
+
+        const btn = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.22, 0.08),
+            new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(bc), transparent: true, side: THREE.DoubleSide })
+        );
+        // 4 багана × 2 эгнээ — монитор дээгүүр босоогоор
+        const col = i % 4;
+        const row = Math.floor(i / 4);
+        btn.position.set((col - 1.5) * 0.24, row * 0.10, 0);
+        btn.userData = { kind: "termCmd", cmd };
+        cmdBtnGroup.add(btn);
+    });
+
+    function openTerminal(scrMesh) {
+        if (termOpen && activeScr === scrMesh) { closeTerminal(); return; }
+        if (termOpen) closeTerminal();
+        termOpen = true;
+        activeScr = scrMesh;
+        termLines = [
+            "Microsoft Windows [Version 10.0.19045]",
+            "(c) Microsoft Corporation. All rights reserved.",
+            "",
+            "Type 'help' or use buttons.",
+            "",
+        ];
+        // Товчнуудыг монитор дээгүүр босоогоор, сурагч руу харуулж байрлуул
+        const { deskX, deskZ } = scrMesh.userData;
+        cmdBtnGroup.position.set(deskX, 1.48, deskZ - 0.07);
+        cmdBtnGroup.rotation.set(0, 0, 0); // босоо, сурагч руу харна (+Z)
+        cmdBtnGroup.visible = true;
+        drawTerminal();
+    }
+
+    function closeTerminal() {
+        if (activeScr) {
+            // Анхны дэлгэцийн зурагруу буцаана
+            const { scrCtx, scrTex } = activeScr.userData;
+            scrCtx.drawImage(stuScrCvs, 0, 0, 512, 320);
+            scrTex.needsUpdate = true;
+            activeScr = null;
+        }
+        termOpen = false;
+        cmdBtnGroup.visible = false;
+        if (termInput) { termInput.remove(); termInput = null; }
+    }
+
+    // Non-VR: HTML input
+    let termInput = null;
+    room.userData.openTerminal = (scrMesh) => {
+        openTerminal(scrMesh);
+        if (termOpen && !document.querySelector('#termInput')) {
+            termInput = document.createElement("input");
+            termInput.id = "termInput";
+            termInput.style.cssText = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:400px;padding:10px;font:18px monospace;background:#0d1117;color:#00ff88;border:1px solid #00ff88;border-radius:4px;outline:none;z-index:9999;";
+            termInput.placeholder = "команд оруулна уу...";
+            document.body.appendChild(termInput);
+            termInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") { runCommand(termInput.value); termInput.value = ""; }
+                if (e.key === "Escape") closeTerminal();
+                e.stopPropagation();
+            });
+            setTimeout(() => termInput?.focus(), 50);
+        }
+    };
+
+    room.userData.onClick = (raycaster) => {
+        const hits = raycaster.intersectObjects(room.children, true);
+        for (const hit of hits) {
+            let obj = hit.object;
+            while (obj && !obj.userData?.kind) obj = obj.parent;
+            if (obj?.userData?.kind === "termCmd") {
+                runCommand(obj.userData.cmd);
+                return;
+            }
+            if (obj?.userData?.kind === "compScreen") {
+                room.userData.openTerminal(obj);
+                return;
+            }
+        }
     };
 
     room.userData.update = (camera) => {
