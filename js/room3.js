@@ -93,14 +93,24 @@ export function createRoom3(scene, camera, renderer) {
     room.add(titleMesh);
 
     // ======================
-    // БУЦАХ ХААЛГА → Угтах танхим (зүүн хана)
+    // БУЦАХ ХААЛГА → Угтах танхим (зүүн хана) — бусад өрөөтэй адил бүтэц
     // ======================
+    const doorFrame3 = new THREE.Mesh(
+        new THREE.BoxGeometry(1.62, 2.62, 0.06),
+        new THREE.MeshStandardMaterial({ color: 0x229944, roughness: 0.3, metalness: 0.7,
+            emissive: 0x229944, emissiveIntensity: 0.15 })
+    );
+    doorFrame3.position.set(-RW/2 + 0.03, 1.31, 0);
+    doorFrame3.rotation.y = Math.PI / 2;
+    room.add(doorFrame3);
+
     const backDoor = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 2.5, 1.5),
+        new THREE.BoxGeometry(1.5, 2.5, 0.15),
         new THREE.MeshStandardMaterial({ color: 0x229944, transparent: true, opacity: 0.85,
             emissive: 0x229944, emissiveIntensity: 0.2 })
     );
-    backDoor.position.set(-RW/2 + 0.1, 1.25, 0);
+    backDoor.position.set(-RW/2 + 0.08, 1.25, 0);
+    backDoor.rotation.y = Math.PI / 2;
     backDoor.userData = { kind: 'backDoor' };
     room.add(backDoor);
 
@@ -113,10 +123,10 @@ export function createRoom3(scene, camera, renderer) {
     bdc.textAlign = 'center'; bdc.textBaseline = 'middle';
     bdc.fillText('← Угтах танхим', 256, 40);
     const bdLbl = new THREE.Mesh(
-        new THREE.PlaneGeometry(2.6, 0.42),
+        new THREE.PlaneGeometry(3.0, 0.47),
         new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(bdCvs), transparent: true, depthTest: false })
     );
-    bdLbl.position.set(-RW/2 + 0.1, 3.2, 0);
+    bdLbl.position.set(-RW/2 + 0.08, 3.2, 0);
     bdLbl.rotation.y = Math.PI / 2;
     room.add(bdLbl);
 
@@ -434,6 +444,365 @@ export function createRoom3(scene, camera, renderer) {
     });
 
     // ======================
+    // НОУТБҮҮК + WIFI ХОЛБОЛТ (WiFi Router хажууд)
+    // ======================
+    const LX = 4.3, LZ = -2.2; // WiFi Router хажууд, сүлжээний ширээн дээр
+    const TS = TY + 0.03; // ширээний дээд гадаргуу (table surface)
+
+    // Ноутбүүкийн суурь
+    const lapBase = new THREE.Mesh(
+        new THREE.BoxGeometry(0.36, 0.018, 0.24),
+        mat(0x2a2a3a, 0.4, 0.5)
+    );
+    lapBase.position.set(LX, TS + 0.009, LZ);
+    room.add(lapBase);
+
+    // Дэлгэцний хэсэг — pivot хойд ирмэгт, сурагч руу нээлттэй
+    const lapLidG = new THREE.Group();
+    lapLidG.position.set(LX, TS + 0.022, LZ - 0.11); // хойд ирмэгт pivot, суурийн дээр
+    room.add(lapLidG);
+
+    const lapLid = new THREE.Mesh(
+        new THREE.BoxGeometry(0.36, 0.24, 0.014),
+        mat(0x2a2a3a, 0.4, 0.5)
+    );
+    lapLid.position.set(0, 0.12, 0);
+    lapLidG.add(lapLid);
+    lapLidG.rotation.x = -0.32; // ~18° хойшоо налсан — ноутбүүкийн байгалийн байдал
+
+    // WiFi дэлгэцний canvas
+    const wifiCvs = document.createElement('canvas');
+    wifiCvs.width = 512; wifiCvs.height = 320;
+    const wifiCtx = wifiCvs.getContext('2d');
+    const wifiTex = new THREE.CanvasTexture(wifiCvs);
+
+    const lapScr = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.32, 0.20),
+        new THREE.MeshBasicMaterial({ map: wifiTex, side: THREE.DoubleSide })
+    );
+    lapScr.position.set(0, 0.12, 0.008);
+    lapScr.userData = { kind: 'wifiLaptop' };
+    lapLidG.add(lapScr);
+
+    // Гар — суурийн урд хэсэгт
+    const lapKbd = new THREE.Mesh(
+        new THREE.BoxGeometry(0.30, 0.005, 0.14),
+        mat(0x1e1e2e, 0.7)
+    );
+    lapKbd.position.set(LX, TS + 0.005, LZ + 0.06);
+    room.add(lapKbd);
+
+    // Touchpad
+    const lapPad = new THREE.Mesh(
+        new THREE.BoxGeometry(0.10, 0.003, 0.07),
+        mat(0x252535, 0.3)
+    );
+    lapPad.position.set(LX, TS + 0.003, LZ + 0.09);
+    room.add(lapPad);
+
+    // Шошго — дэлгэцний дээр
+    const lapLblC = document.createElement('canvas');
+    lapLblC.width = 256; lapLblC.height = 60;
+    const llx = lapLblC.getContext('2d');
+    llx.fillStyle = 'rgba(0,0,0,0.75)'; llx.fillRect(0, 0, 256, 60);
+    llx.fillStyle = '#0088ff'; llx.font = 'bold 26px Arial';
+    llx.textAlign = 'center'; llx.textBaseline = 'middle';
+    llx.fillText('💻 Notebook', 128, 30);
+    const lapLblM = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.50, 0.12),
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(lapLblC), transparent: true, depthTest: false })
+    );
+    lapLblM.position.set(LX, TS + 0.60, LZ);
+    room.add(lapLblM);
+
+    // ======================
+    // WIFI 3D ХОЛБОЛТ ВИЗУАЛ — Router ↔ Notebook
+    // WiFi router: x=3.6, z=-2.2 | Notebook: x=4.3, z=-2.2
+    // ======================
+    const ROUTER_POS = new THREE.Vector3(3.6, TY + 0.22, -2.2);
+    const LAPTOP_POS = new THREE.Vector3(LX, TS + 0.28, LZ);
+
+    // Холболтын шугам
+    const wifiLineMat = new THREE.LineDashedMaterial({
+        color: 0x00aaff, dashSize: 0.06, gapSize: 0.04, linewidth: 2
+    });
+    const wifiLineGeo = new THREE.BufferGeometry().setFromPoints([ROUTER_POS, LAPTOP_POS]);
+    const wifiLine = new THREE.Line(wifiLineGeo, wifiLineMat);
+    wifiLine.computeLineDistances();
+    wifiLine.visible = false;
+    room.add(wifiLine);
+
+    // Гэрэлтсэн тойрог router дээр
+    const wifiRingR = new THREE.Mesh(
+        new THREE.TorusGeometry(0.10, 0.012, 8, 32),
+        new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.9 })
+    );
+    wifiRingR.position.copy(ROUTER_POS);
+    wifiRingR.rotation.x = Math.PI / 2;
+    wifiRingR.visible = false;
+    room.add(wifiRingR);
+
+    // Пакет dots — router→laptop хооронд хөдөлнө
+    const wifiDots = [];
+    for (let i = 0; i < 5; i++) {
+        const dot = new THREE.Mesh(
+            new THREE.SphereGeometry(0.022, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0x44ddff })
+        );
+        dot.userData.t = i / 5;
+        dot.visible = false;
+        room.add(dot);
+        wifiDots.push(dot);
+    }
+
+    // Router дээрх wifi icon текст
+    const wifiIconCvs = document.createElement('canvas');
+    wifiIconCvs.width = 128; wifiIconCvs.height = 64;
+    const wic = wifiIconCvs.getContext('2d');
+    wic.fillStyle = '#001830'; wic.fillRect(0, 0, 128, 64);
+    wic.fillStyle = '#00aaff'; wic.font = 'bold 28px Arial';
+    wic.textAlign = 'center'; wic.textBaseline = 'middle';
+    wic.fillText('📶 MNUE', 64, 32);
+    const wifiIconMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.38, 0.19),
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(wifiIconCvs), transparent: true, depthTest: false })
+    );
+    wifiIconMesh.position.set(3.6, TY + 0.52, -2.2);
+    wifiIconMesh.visible = false;
+    room.add(wifiIconMesh);
+
+    // ── WiFi UI state machine ──
+    // 0: scan (network list)  1: password  2: connecting  3: connected
+    let wifiState = 0;
+    let wifiPwd = '';
+    let wifiConnTimer = 0;
+    let wifiDataT = 0;
+    const WIFI_IP = '192.168.1.' + (Math.floor(Math.random() * 50) + 100);
+
+    function drawWifiUI() {
+        const W = 512, H = 320;
+        wifiCtx.fillStyle = '#0d1117';
+        wifiCtx.fillRect(0, 0, W, H);
+
+        // Гарчиг мөр
+        wifiCtx.fillStyle = '#1a3050';
+        wifiCtx.fillRect(0, 0, W, 36);
+        wifiCtx.fillStyle = '#60aaff';
+        wifiCtx.font = 'bold 18px Arial';
+        wifiCtx.textAlign = 'center'; wifiCtx.textBaseline = 'middle';
+
+        if (wifiState === 0) {
+            // ── Сүлжээний жагсаалт ──
+            wifiCtx.fillText('📶  Wi-Fi Networks', W/2, 18);
+            const nets = [
+                { ssid: 'MNUE',          bars: 4, lock: true,  highlight: true },
+                { ssid: 'Guest_Network', bars: 3, lock: true,  highlight: false },
+                { ssid: 'AndroidAP',     bars: 2, lock: false, highlight: false },
+                { ssid: 'TP-Link_5G',    bars: 2, lock: true,  highlight: false },
+            ];
+            nets.forEach((n, i) => {
+                const y = 56 + i * 58;
+                if (n.highlight) {
+                    wifiCtx.fillStyle = 'rgba(0,100,255,0.25)';
+                    wifiCtx.fillRect(8, y - 2, W - 16, 52);
+                    wifiCtx.strokeStyle = '#3388ff';
+                    wifiCtx.lineWidth = 1.5;
+                    wifiCtx.strokeRect(8, y - 2, W - 16, 52);
+                }
+                // Signal bars
+                const bx = 24, by = y + 26;
+                for (let b = 0; b < 4; b++) {
+                    wifiCtx.fillStyle = b < n.bars ? '#44aaff' : '#334';
+                    wifiCtx.fillRect(bx + b * 10, by - b * 5 - 4, 7, b * 5 + 4);
+                }
+                wifiCtx.fillStyle = n.highlight ? '#88ccff' : '#9999aa';
+                wifiCtx.font = n.highlight ? 'bold 20px Arial' : '18px Arial';
+                wifiCtx.textAlign = 'left';
+                wifiCtx.fillText(n.ssid, 72, y + 22);
+                wifiCtx.font = '14px Arial';
+                wifiCtx.fillStyle = '#667788';
+                wifiCtx.fillText(n.lock ? '🔒 Secured' : '🔓 Open', 72, y + 42);
+            });
+            wifiCtx.fillStyle = '#2255aa';
+            wifiCtx.fillRect(8, H - 46, W - 16, 36);
+            wifiCtx.fillStyle = '#88ccff';
+            wifiCtx.font = 'bold 18px Arial';
+            wifiCtx.textAlign = 'center';
+            wifiCtx.fillText('[ MNUE дарж холбогдох ]', W/2, H - 28);
+
+        } else if (wifiState === 1) {
+            // ── Нууц үг оруулах ──
+            wifiCtx.fillText('🔒  MNUE — Нууц үг', W/2, 18);
+            wifiCtx.fillStyle = '#aaaacc';
+            wifiCtx.font = '16px Arial';
+            wifiCtx.textAlign = 'center';
+            wifiCtx.fillText('Нууц үгийг оруулна уу:', W/2, 68);
+            // Input хайрцаг
+            const hasErr = !!wifiError;
+            wifiCtx.strokeStyle = hasErr ? '#ff4444' : '#3388ff';
+            wifiCtx.lineWidth = 2;
+            wifiCtx.strokeRect(60, 85, W - 120, 50);
+            wifiCtx.fillStyle = '#0a1825';
+            wifiCtx.fillRect(62, 87, W - 124, 46);
+            wifiCtx.fillStyle = '#ffffff';
+            wifiCtx.font = 'bold 30px monospace';
+            const dots = '•'.repeat(wifiPwd.length);
+            wifiCtx.fillText(dots + (Date.now() % 1000 < 500 ? '▌' : ''), W/2, 114);
+            // Алдааны мессеж
+            if (hasErr) {
+                wifiCtx.fillStyle = '#ff5555';
+                wifiCtx.font = 'bold 18px Arial';
+                wifiCtx.fillText(wifiError, W/2, 158);
+            }
+            // VR заавар
+            wifiCtx.fillStyle = '#556677';
+            wifiCtx.font = '14px Arial';
+            wifiCtx.fillText('VR: зүүн талд numpad ашиглана уу', W/2, 185);
+            wifiCtx.fillText('Гараас: тоо бичиж Enter дарна', W/2, 205);
+            // ✓ товч дэлгэц дотор
+            wifiCtx.fillStyle = '#0a3020';
+            wifiCtx.fillRect(160, 225, 192, 44);
+            wifiCtx.strokeStyle = '#22cc66'; wifiCtx.lineWidth = 2;
+            wifiCtx.strokeRect(160, 225, 192, 44);
+            wifiCtx.fillStyle = '#44ff88'; wifiCtx.font = 'bold 20px Arial';
+            wifiCtx.fillText('✓  Нэвтрэх', W/2, 247);
+
+        } else if (wifiState === 2) {
+            // ── Холбогдож байна ──
+            wifiCtx.fillText('📶  MNUE', W/2, 18);
+            wifiCtx.fillStyle = '#aaddff';
+            wifiCtx.font = 'bold 20px Arial';
+            wifiCtx.textAlign = 'center';
+            wifiCtx.fillText('Холбогдож байна...', W/2, 100);
+            // Spinner dots
+            const dt = (Date.now() * 0.003) % (Math.PI * 2);
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2 + dt;
+                const alpha = 0.2 + 0.8 * ((i / 8 + dt / (Math.PI*2)) % 1);
+                wifiCtx.fillStyle = `rgba(100,180,255,${alpha.toFixed(2)})`;
+                wifiCtx.beginPath();
+                wifiCtx.arc(W/2 + Math.cos(a) * 40, 170 + Math.sin(a) * 40, 8, 0, Math.PI*2);
+                wifiCtx.fill();
+            }
+            wifiCtx.fillStyle = '#556677';
+            wifiCtx.font = '15px Arial';
+            wifiCtx.fillText('DHCP хаяг авч байна...', W/2, 260);
+
+        } else if (wifiState === 3) {
+            // ── Холбогдсон + мэдээлэл дамжуулалт ──
+            wifiCtx.fillText('✅  MNUE — Холбогдсон', W/2, 18);
+            wifiCtx.fillStyle = '#44ff88';
+            wifiCtx.font = 'bold 16px Arial';
+            wifiCtx.textAlign = 'left';
+            wifiCtx.fillText('IP хаяг:', 20, 58);
+            wifiCtx.fillStyle = '#ffffff'; wifiCtx.font = 'bold 18px monospace';
+            wifiCtx.fillText(WIFI_IP, 130, 58);
+            wifiCtx.fillStyle = '#44ff88'; wifiCtx.font = 'bold 16px Arial';
+            wifiCtx.fillText('Gateway:', 20, 82);
+            wifiCtx.fillStyle = '#ffffff'; wifiCtx.font = '16px monospace';
+            wifiCtx.fillText('192.168.1.1', 130, 82);
+            wifiCtx.fillStyle = '#44ff88'; wifiCtx.font = 'bold 16px Arial';
+            wifiCtx.fillText('DNS:', 20, 106);
+            wifiCtx.fillStyle = '#ffffff'; wifiCtx.font = '16px monospace';
+            wifiCtx.fillText('8.8.8.8', 130, 106);
+
+            // Хурааны мөр
+            wifiCtx.strokeStyle = '#334455'; wifiCtx.lineWidth = 1;
+            wifiCtx.beginPath(); wifiCtx.moveTo(10, 120); wifiCtx.lineTo(W-10, 120); wifiCtx.stroke();
+
+            // Download bar
+            const dlProg = Math.min(wifiDataT * 0.18, 1);
+            wifiCtx.fillStyle = '#aaddff'; wifiCtx.font = 'bold 15px Arial';
+            wifiCtx.textAlign = 'left';
+            wifiCtx.fillText('⬇ Татах:', 20, 145);
+            wifiCtx.fillStyle = '#1a2a3a'; wifiCtx.fillRect(110, 133, 260, 18);
+            wifiCtx.fillStyle = '#2288ff';
+            wifiCtx.fillRect(110, 133, 260 * dlProg, 18);
+            wifiCtx.fillStyle = '#ffffff'; wifiCtx.font = '13px Arial'; wifiCtx.textAlign = 'center';
+            wifiCtx.fillText(`${Math.round(dlProg * 100)}%`, 240, 146);
+
+            // Upload bar
+            const ulProg = Math.min(wifiDataT * 0.09, 1);
+            wifiCtx.fillStyle = '#aaffcc'; wifiCtx.font = 'bold 15px Arial'; wifiCtx.textAlign = 'left';
+            wifiCtx.fillText('⬆ Илгээх:', 20, 175);
+            wifiCtx.fillStyle = '#1a2a3a'; wifiCtx.fillRect(110, 163, 260, 18);
+            wifiCtx.fillStyle = '#22cc66';
+            wifiCtx.fillRect(110, 163, 260 * ulProg, 18);
+            wifiCtx.fillStyle = '#ffffff'; wifiCtx.font = '13px Arial'; wifiCtx.textAlign = 'center';
+            wifiCtx.fillText(`${Math.round(ulProg * 100)}%`, 240, 176);
+
+            // Ping
+            const pingMs = 12 + Math.round(Math.sin(wifiDataT * 2.1) * 4);
+            wifiCtx.fillStyle = '#ffdd88'; wifiCtx.font = 'bold 15px Arial'; wifiCtx.textAlign = 'left';
+            wifiCtx.fillText(`Ping: ${pingMs}ms`, 20, 210);
+            const mbps = (24 + Math.sin(wifiDataT * 1.3) * 6).toFixed(1);
+            wifiCtx.fillStyle = '#88ddff';
+            wifiCtx.fillText(`Хурд: ${mbps} Mbps`, 200, 210);
+
+            // Packet аниматед dots
+            wifiCtx.fillStyle = '#aaddff'; wifiCtx.font = 'bold 14px Arial'; wifiCtx.textAlign = 'left';
+            wifiCtx.fillText('Пакет:', 20, 240);
+            for (let i = 0; i < 6; i++) {
+                const px = 110 + ((wifiDataT * 60 + i * 60) % 270);
+                const alpha = 0.4 + 0.6 * Math.abs(Math.sin(wifiDataT * 3 + i));
+                wifiCtx.fillStyle = `rgba(80,180,255,${alpha.toFixed(2)})`;
+                wifiCtx.beginPath();
+                wifiCtx.arc(px, 240, 5, 0, Math.PI * 2);
+                wifiCtx.fill();
+            }
+
+            // Signal дүрслэл
+            wifiCtx.fillStyle = '#334455'; wifiCtx.lineWidth = 1;
+            wifiCtx.fillText('📶 Signal: Маш сайн (-45 dBm)', 20, 280);
+        }
+        wifiTex.needsUpdate = true;
+    }
+    drawWifiUI();
+
+    // VR NUMPAD — 0-9 + ← устгах + ✓ нэвтрэх
+    const NUMPAD_KEYS = ['1','2','3','4','5','6','7','8','9','←','0','✓'];
+    const numpadGroup = new THREE.Group();
+    numpadGroup.visible = false;
+    room.add(numpadGroup);
+
+    function makeKeyBtn(label, isEnter, isDel) {
+        const bc = document.createElement('canvas');
+        bc.width = 128; bc.height = 128;
+        const bx = bc.getContext('2d');
+        bx.fillStyle = isEnter ? '#0a4020' : isDel ? '#401010' : '#0d2040';
+        bx.beginPath();
+        if (bx.roundRect) bx.roundRect(4, 4, 120, 120, 14); else bx.rect(4, 4, 120, 120);
+        bx.fill();
+        bx.strokeStyle = isEnter ? '#22dd66' : isDel ? '#dd4444' : '#2266cc';
+        bx.lineWidth = 4; bx.stroke();
+        bx.fillStyle = '#e8f0ff';
+        bx.font = isEnter ? 'bold 32px Arial' : 'bold 52px monospace';
+        bx.textAlign = 'center'; bx.textBaseline = 'middle';
+        bx.fillText(label, 64, 64);
+        return new THREE.CanvasTexture(bc);
+    }
+
+    NUMPAD_KEYS.forEach((key, i) => {
+        const isEnter = key === '✓';
+        const isDel   = key === '←';
+        const btn = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.11, 0.11),
+            new THREE.MeshBasicMaterial({ map: makeKeyBtn(key, isEnter, isDel), transparent: true, side: THREE.DoubleSide })
+        );
+        const col = i % 3;
+        const row = Math.floor(i / 3);
+        btn.position.set((col - 1) * 0.13, -row * 0.13, 0);
+        btn.userData = { kind: 'wifiKey', key };
+        numpadGroup.add(btn);
+    });
+
+    // numpad байрлал — ноутбүүк дэлгэцний урд, зүүн талд
+    numpadGroup.position.set(LX - 0.28, TS + 0.55, LZ + 0.05);
+
+    // Нууц үг оруулсан эсэхийг хадгалах
+    const wifiBtn1 = { visible: false }; // compatibility stub — numpad орлуулсан
+
+    // ======================
     // GAME STATE
     // ======================
     let selectedCable = null;
@@ -617,9 +986,57 @@ export function createRoom3(scene, camera, renderer) {
     // ======================
     // CLICK HANDLER
     // ======================
+    // WiFi нууц үг оролт шалгах
+    let wifiError = '';
+    function wifiSubmitPassword() {
+        if (wifiState !== 1) return;
+        if (wifiPwd === '1') {
+            // Зөв нууц үг
+            wifiError = '';
+            wifiState = 2;
+            numpadGroup.visible = false;
+            wifiConnTimer = 0;
+            wifiLine.visible = false;
+            wifiRingR.visible = false;
+            wifiIconMesh.visible = false;
+            wifiDots.forEach(d => { d.visible = false; });
+        } else {
+            // Буруу нууц үг
+            wifiError = '❌  Нууц үг буруу байна!';
+            wifiPwd = '';
+        }
+        drawWifiUI();
+    }
+
+    function wifiHandleKey(key) {
+        if (wifiState !== 1) return;
+        if (key === '✓') { wifiSubmitPassword(); return; }
+        if (key === '←') { wifiPwd = wifiPwd.slice(0, -1); }
+        else if (wifiPwd.length < 8) { wifiPwd += key; }
+        wifiError = '';
+        drawWifiUI();
+    }
+
     room.userData.onClick = (raycaster) => {
         const hits = raycaster.intersectObjects(room.children, true);
         if (!hits.length) return;
+
+        // WiFi laptop + numpad товч шалгах
+        for (const hit of hits) {
+            let o = hit.object;
+            while (o && !o.userData?.kind) o = o.parent;
+            if (o?.userData?.kind === 'wifiLaptop') {
+                if (wifiState === 0) {
+                    wifiState = 1; wifiPwd = ''; wifiError = '';
+                    numpadGroup.visible = true;
+                    drawWifiUI();
+                }
+                return;
+            }
+            if (o?.userData?.kind === 'wifiKey') {
+                wifiHandleKey(o.userData.key); return;
+            }
+        }
 
         // Hits бүрийг сканнална — frame/border шиг kind-гүй объект алгасна
         let obj = null;
@@ -787,6 +1204,38 @@ export function createRoom3(scene, camera, renderer) {
             gl.intensity = base + Math.sin(t * 2.2 + i * 1.1) * 0.15;
         });
 
+        // WiFi laptop анимац
+        if (wifiState === 1) {
+            drawWifiUI(); // cursor blink
+        } else if (wifiState === 2) {
+            wifiConnTimer += delta;
+            drawWifiUI(); // spinner
+            if (wifiConnTimer > 2.5) {
+                wifiState = 3; wifiDataT = 0;
+                numpadGroup.visible = false;
+                // 3D холболт идэвхжүүлэх
+                wifiLine.visible = true;
+                wifiRingR.visible = true;
+                wifiIconMesh.visible = true;
+                wifiDots.forEach(d => { d.visible = true; });
+            }
+        } else if (wifiState === 3) {
+            wifiDataT += delta;
+            drawWifiUI(); // data transfer animation
+            // 3D dots animator — router → laptop чиглэлд
+            wifiDots.forEach(dot => {
+                dot.userData.t = (dot.userData.t + delta * 0.55) % 1;
+                dot.position.lerpVectors(ROUTER_POS, LAPTOP_POS, dot.userData.t);
+                const alpha = 0.3 + 0.7 * Math.sin(dot.userData.t * Math.PI);
+                dot.material.opacity = alpha;
+                dot.material.transparent = true;
+            });
+            // Router тойрог пульс
+            const pulse = 0.85 + 0.15 * Math.sin(t * 4);
+            wifiRingR.scale.setScalar(pulse);
+            wifiRingR.material.opacity = 0.6 + 0.4 * Math.sin(t * 3);
+        }
+
         // Буцах хаалга анивчих
         backDoor.material.opacity = 0.65 + Math.sin(t * 1.8) * 0.2;
 
@@ -799,7 +1248,12 @@ export function createRoom3(scene, camera, renderer) {
         }
     };
 
-    room.userData.onKey = () => {};
+    room.userData.onKey = (key) => {
+        if (wifiState !== 1) return;
+        if (key === 'Enter')     { wifiSubmitPassword(); return; }
+        if (key === 'Backspace') { wifiHandleKey('←'); return; }
+        if (/^[0-9]$/.test(key)) { wifiHandleKey(key); }
+    };
 
     // ======================
     // VR ТОВЧ ФУНКЦҮҮД

@@ -421,24 +421,112 @@ export function createRoom5(scene) {
     tvFrm.castShadow = true;
     room.add(tvFrm);
 
-    // TV дэлгэц — lab.mp4 видео, дарах үед тоглох/зогсоох
-    const tvVid = document.createElement("video");
-    tvVid.src = "./js/lab.mp4";
-    tvVid.loop = true;
-    tvVid.muted = false;
-    tvVid.playsInline = true;
-    const tvVidTex = new THREE.VideoTexture(tvVid);
+    // TV дэлгэц — YouTube projected iframe
+    const COMP_YT_ID    = "qJ1WrPHNCnc";
+    const COMP_YT_EMBED = `https://www.youtube.com/embed/${COMP_YT_ID}`;
+
+    const tvScrCvs = document.createElement("canvas");
+    tvScrCvs.width = 720; tvScrCvs.height = 400;
+    const tvScrCtx = tvScrCvs.getContext("2d");
+    const tvScrTex = new THREE.CanvasTexture(tvScrCvs);
+    tvScrTex.minFilter = THREE.LinearFilter;
+    tvScrTex.magFilter = THREE.LinearFilter;
+
+    function drawCompTVIdle() {
+        tvScrCtx.fillStyle = "#050d1a";
+        tvScrCtx.fillRect(0, 0, 720, 400);
+        tvScrCtx.fillStyle = "#ff0000";
+        tvScrCtx.beginPath();
+        if (tvScrCtx.roundRect) tvScrCtx.roundRect(240, 110, 240, 140, 18);
+        else tvScrCtx.rect(240, 110, 240, 140);
+        tvScrCtx.fill();
+        tvScrCtx.fillStyle = "#ffffff";
+        tvScrCtx.beginPath();
+        tvScrCtx.moveTo(302, 140); tvScrCtx.lineTo(302, 228); tvScrCtx.lineTo(418, 184);
+        tvScrCtx.closePath(); tvScrCtx.fill();
+        tvScrCtx.fillStyle = "#aaa";
+        tvScrCtx.font = "bold 24px Arial"; tvScrCtx.textAlign = "center";
+        tvScrCtx.fillText("YouTube", 360, 285);
+        tvScrCtx.fillStyle = "#666";
+        tvScrCtx.font = "18px Arial";
+        tvScrCtx.fillText("▶  Дарж тоглуулна уу", 360, 320);
+        tvScrTex.needsUpdate = true;
+    }
+    drawCompTVIdle();
+
     const tvScr = new THREE.Mesh(
         new THREE.PlaneGeometry(1.44, 0.80),
-        new THREE.MeshBasicMaterial({ map: tvVidTex })
+        new THREE.MeshBasicMaterial({ map: tvScrTex })
     );
     tvScr.position.set(3.0, 2.1, -RD / 2 + 0.11);
     tvScr.userData = { kind: "tv" };
     room.add(tvScr);
 
+    // TV дэлгэцийн projected iframe
+    // TV screen world pos: (3.0, 2.1, -RD/2+0.11) = (3.0, 2.1, -4.89)
+    const _compTvCorners = [
+        new THREE.Vector3(3.0 - 0.72, 2.1 + 0.40, -4.89),
+        new THREE.Vector3(3.0 + 0.72, 2.1 + 0.40, -4.89),
+        new THREE.Vector3(3.0 + 0.72, 2.1 - 0.40, -4.89),
+        new THREE.Vector3(3.0 - 0.72, 2.1 - 0.40, -4.89),
+    ];
+
+    const compYtDiv = document.createElement("div");
+    compYtDiv.style.cssText =
+        "display:none;position:fixed;z-index:100;overflow:hidden;border-radius:2px;pointer-events:auto;";
+    const compYtIframe = document.createElement("iframe");
+    compYtIframe.style.cssText = "width:100%;height:100%;border:none;";
+    compYtIframe.allow = "autoplay;fullscreen;picture-in-picture";
+    compYtIframe.allowFullscreen = true;
+    compYtDiv.appendChild(compYtIframe);
+    document.body.appendChild(compYtDiv);
+
+    const compYtClose = document.createElement("button");
+    compYtClose.textContent = "✕";
+    compYtClose.style.cssText =
+        "display:none;position:fixed;z-index:101;width:24px;height:24px;" +
+        "background:rgba(0,0,0,0.75);color:#fff;border:none;border-radius:50%;" +
+        "font-size:13px;line-height:24px;text-align:center;cursor:pointer;";
+    document.body.appendChild(compYtClose);
+
+    function closeCompYT() {
+        compYtOpen = false;
+        compYtDiv.style.display  = "none";
+        compYtClose.style.display = "none";
+        compYtIframe.src = "";
+        drawCompTVIdle();
+    }
+    compYtClose.onclick = closeCompYT;
+
+    function updateCompYtPos(cam) {
+        if (!compYtOpen) return;
+        const W = window.innerWidth, H = window.innerHeight;
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        _compTvCorners.forEach(wv => {
+            const v = wv.clone().project(cam);
+            const sx = (v.x + 1) / 2 * W;
+            const sy = (-v.y + 1) / 2 * H;
+            if (sx < minX) minX = sx; if (sx > maxX) maxX = sx;
+            if (sy < minY) minY = sy; if (sy > maxY) maxY = sy;
+        });
+        compYtDiv.style.left   = `${minX}px`;
+        compYtDiv.style.top    = `${minY}px`;
+        compYtDiv.style.width  = `${maxX - minX}px`;
+        compYtDiv.style.height = `${maxY - minY}px`;
+        compYtClose.style.left = `${maxX - 28}px`;
+        compYtClose.style.top  = `${minY + 3}px`;
+    }
+
+    let compYtOpen = false;
     room.userData.toggleVideo = () => {
-        if (tvVid.paused) tvVid.play().catch(e => console.warn("TV play:", e));
-        else tvVid.pause();
+        compYtOpen = !compYtOpen;
+        if (compYtOpen) {
+            compYtIframe.src = `${COMP_YT_EMBED}?autoplay=1&rel=0`;
+            compYtDiv.style.display  = "block";
+            compYtClose.style.display = "block";
+        } else {
+            closeCompYT();
+        }
     };
 
     const tvLed = new THREE.Mesh(
@@ -923,6 +1011,7 @@ export function createRoom5(scene) {
     };
 
     room.userData.update = (camera) => {
+        updateCompYtPos(camera);
         const t = performance.now() * 0.001;
         backDoor.material.opacity = 0.65 + 0.2 * Math.sin(t * 1.8);
         if (bearGroup5 && camera) {

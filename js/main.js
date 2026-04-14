@@ -165,8 +165,8 @@ portalDefs.forEach(({ rg, color, x, y, z, rotY }) => {
 let currentRoom = 0;
 let isSitting   = false;
 
-const camPos    = { 0:[0,1.8,4], 1:[0,1.8,4], 2:[0,1.8,4], 3:[0,4.0,-2], 4:[0,1.9,0], 5:[0,1.8,4] };
-const camTarget = { 0:[0,1,-3],  1:[0,1,0],   2:[0,1,0],   3:[0,1.6,0], 4:[0,1.9,-2], 5:[0,1.2,0] };
+const camPos    = { 0:[0,1.8,4], 1:[0,1.8,4], 2:[0,1.8,4], 3:[0,2.8,3], 4:[0,1.9,0], 5:[0,2.8,3] };
+const camTarget = { 0:[0,1,-3],  1:[0,1,0],   2:[0,1,0],   3:[0,3.5,-4], 4:[0,1.9,-2], 5:[0,3.5,-4] };
 const roomNames = { 0:"Угтах танхим", 1:"Лекцийн танхим", 2:"Сүлжээний лаборатори",
                     3:"AR лаборатори", 4:"Компьютерийн лаборатори", 5:"Номын сан" };
 
@@ -203,7 +203,7 @@ const portalTriggers = [
     // Бусад өрөөнөөс угтах танхим руу
     { room: 1, kind: "backDoor",   target: 0, x:  4.1, z:  0   },
     { room: 2, kind: "backDoor",   target: 0, x: -4.1, z:  0   },
-    { room: 3, kind: "backDoor",   target: 0, x:  0,   z:  4.1 },
+    { room: 3, kind: "backDoor",   target: 0, x:  0,   z:  4.7 },
     { room: 4, kind: "backDoor",   target: 0, x:  4.1, z:  0   },
     { room: 5, kind: "backDoor",   target: 0, x:  0,   z:  5.1 },
 ];
@@ -292,7 +292,8 @@ function handleControllerSelect(ctrl) {
     const hits = raycasterVR.intersectObjects(activeRoom.children, true);
     if (!hits.length) return;
 
-    let obj = hits[0].object;
+    const hitObj = hits[0].object;
+    let obj = hitObj;
     while (obj) { if (obj.userData?.kind) break; obj = obj.parent; }
 
     if (obj?.userData?.kind && handleKind(obj.userData.kind, true, obj)) return;
@@ -303,9 +304,15 @@ function handleControllerSelect(ctrl) {
     if (currentRoom === 4) { compLabR.userData.onClick?.(raycasterVR); return; }
     if (currentRoom === 5) { libraryR.userData.onClick?.(raycasterVR); return; }
 
-    if (obj?.userData?.teleport) {
-        const point = hits[0].point;
-        playerRig.position.set(point.x, 0, point.z);
+    // Teleport: шалган дарахад тоглогчийг шилжүүлэх (obj null байж болно тул hitObj-оос шалгах)
+    let tObj = hitObj;
+    while (tObj) {
+        if (tObj.userData?.teleport) {
+            const point = hits[0].point;
+            playerRig.position.set(point.x, 0, point.z);
+            return;
+        }
+        tObj = tObj.parent;
     }
 }
 
@@ -372,8 +379,71 @@ function handleKind(kind, isVR, clickedObj) {
     return false;
 }
 
-controller0.addEventListener("selectstart", () => handleControllerSelect(controller0));
-controller1.addEventListener("selectstart", () => handleControllerSelect(controller1));
+// ======================
+// VR САМБАР ЗУРАХ
+// ======================
+let isVRDrawing0 = false, isVRDrawing1 = false;
+let lastVRUV0 = null,     lastVRUV1 = null;
+
+function isCtrlOnBoard(ctrl) {
+    if (!lectureR?.userData?.boardMesh) return false;
+    const m = new THREE.Matrix4();
+    m.identity().extractRotation(ctrl.matrixWorld);
+    const rc = new THREE.Raycaster();
+    rc.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
+    rc.ray.direction.set(0, 0, -1).applyMatrix4(m);
+    const hits = rc.intersectObject(lectureR.userData.boardMesh, false);
+    return hits.length > 0 && !!hits[0].uv;
+}
+
+function doVRBoardDraw(ctrl, lastUV) {
+    if (!lectureR?.userData?.boardMesh) return null;
+    const m = new THREE.Matrix4();
+    m.identity().extractRotation(ctrl.matrixWorld);
+    const rc = new THREE.Raycaster();
+    rc.ray.origin.setFromMatrixPosition(ctrl.matrixWorld);
+    rc.ray.direction.set(0, 0, -1).applyMatrix4(m);
+    const hits = rc.intersectObject(lectureR.userData.boardMesh, false);
+    if (!hits.length || !hits[0].uv) return null;
+    const uv = hits[0].uv;
+    const cvs = lectureR.userData.boardCvs;
+    const ctx = lectureR.userData.boardCtx;
+    const cx  = uv.x * cvs.width;
+    const cy  = (1 - uv.y) * cvs.height;
+    ctx.strokeStyle = lectureR.userData.chalkColor || "#f0f0dc";
+    ctx.lineWidth   = lectureR.userData.chalkSize  || 4;
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    if (lastUV) {
+        ctx.beginPath();
+        ctx.moveTo(lastUV.x, lastUV.y);
+        ctx.lineTo(cx, cy);
+        ctx.stroke();
+    } else {
+        ctx.beginPath();
+        ctx.arc(cx, cy, (lectureR.userData.chalkSize || 4) / 2, 0, Math.PI * 2);
+        ctx.fillStyle = lectureR.userData.chalkColor || "#f0f0dc";
+        ctx.fill();
+    }
+    lectureR.userData.boardTex.needsUpdate = true;
+    return { x: cx, y: cy };
+}
+
+controller0.addEventListener("selectstart", () => {
+    if (renderer.xr.isPresenting && currentRoom === 1 && isCtrlOnBoard(controller0)) {
+        isVRDrawing0 = true; lastVRUV0 = null;
+    } else {
+        handleControllerSelect(controller0);
+    }
+});
+controller1.addEventListener("selectstart", () => {
+    if (renderer.xr.isPresenting && currentRoom === 1 && isCtrlOnBoard(controller1)) {
+        isVRDrawing1 = true; lastVRUV1 = null;
+    } else {
+        handleControllerSelect(controller1);
+    }
+});
+controller0.addEventListener("selectend", () => { isVRDrawing0 = false; lastVRUV0 = null; });
+controller1.addEventListener("selectend", () => { isVRDrawing1 = false; lastVRUV1 = null; });
 
 // ======================
 // САМБАР ЗУРАХ — Лекцийн танхим
@@ -553,11 +623,11 @@ function checkVRButtons() {
             prevBtnState[key] = btn.pressed;
         });
 
-        // Зүүн жойстик — AR өрөөнд урагш/хойш (zoom)
+        // Зүүн жойстик — AR өрөөнд zoom, бусад өрөөнд урагш/хойш хөдөлгөөн
         if (src.handedness === 'left' && src.gamepad.axes.length >= 4) {
             const az = src.gamepad.axes[3];
             const DEAD = 0.12;
-            if (currentRoom === 3 && Math.abs(az) > DEAD) {
+            if (Math.abs(az) > DEAD) {
                 const forward = new THREE.Vector3();
                 camera.getWorldDirection(forward);
                 forward.y = 0; forward.normalize();
@@ -605,6 +675,12 @@ renderer.setAnimationLoop(() => {
 
     checkVRButtons();
     checkPortalProximity();
+
+    // VR самбар зурах — trigger барьж байх үед тасралтгүй зурна
+    if (renderer.xr.isPresenting && currentRoom === 1) {
+        if (isVRDrawing0) lastVRUV0 = doVRBoardDraw(controller0, lastVRUV0);
+        if (isVRDrawing1) lastVRUV1 = doVRBoardDraw(controller1, lastVRUV1);
+    }
 
     allPortals.forEach(p => p.userData.update?.(t));
 

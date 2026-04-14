@@ -608,15 +608,16 @@ export function createRoom2(scene) {
     const tvG = new THREE.Group();
 
     const tvFrame = new THREE.Mesh(
-        new THREE.BoxGeometry(2.6, 1.55, 0.1),
+        new THREE.BoxGeometry(3.7, 2.15, 0.1),
         mat(0x111111, 0.2, 0.7)
     );
     tvFrame.castShadow = false;
     tvFrame.userData = { kind: "tv" };
     tvG.add(tvFrame);
 
+    // TV дэлгэц — view.mp4 видео
     const vid = document.createElement("video");
-    vid.src = "js/view.mp4";
+    vid.src = "./js/view.mp4";
     vid.loop = true;
     vid.muted = true;
     vid.playsInline = true;
@@ -629,33 +630,27 @@ export function createRoom2(scene) {
     videoTex.magFilter = THREE.LinearFilter;
 
     const tvScreen = new THREE.Mesh(
-        new THREE.PlaneGeometry(2.4, 1.35),
+        new THREE.PlaneGeometry(3.5, 1.97),
         new THREE.MeshBasicMaterial({ map: videoTex })
     );
     tvScreen.position.z = 0.052;
     tvScreen.userData = { kind: "tv" };
     tvG.add(tvScreen);
 
-    vid.pause();
-
     room.userData.toggleVideo = () => {
-        if (vid.paused) {
-            vid.muted = false;
-            vid.play().catch(e => console.warn("Video play:", e));
-        } else {
-            vid.pause();
-        }
+        if (vid.paused) { vid.muted = false; vid.play().catch(e => console.warn("Video:", e)); }
+        else vid.pause();
     };
 
     const ledBar = new THREE.Mesh(
-        new THREE.BoxGeometry(2.4, 0.04, 0.04),
+        new THREE.BoxGeometry(3.5, 0.04, 0.04),
         new THREE.MeshStandardMaterial({
             color: 0x1a88ff,
             emissive: 0x1a88ff,
             emissiveIntensity: 1.2
         })
     );
-    ledBar.position.set(0, -0.76, 0.055);
+    ledBar.position.set(0, -1.09, 0.055);
     tvG.add(ledBar);
 
 
