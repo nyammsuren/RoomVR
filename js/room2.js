@@ -636,18 +636,10 @@ export function createRoom2(scene) {
     tvScreen.userData = { kind: "tv" };
     tvG.add(tvScreen);
 
-    const tryPlay = () => vid.play().catch(e => console.warn("Video play:", e));
-    vid.addEventListener("canplay", tryPlay, { once: true });
-    if (vid.readyState >= 3) tryPlay();
+    vid.pause();
 
     room.userData.toggleVideo = () => {
-        if (vid.muted) {
-            vid.muted = false;
-            vid.play().catch(e => {
-                console.warn("Video play:", e);
-                vid.muted = true;
-            });
-        } else if (vid.paused) {
+        if (vid.paused) {
             vid.play().catch(e => console.warn("Video play:", e));
         } else {
             vid.pause();
