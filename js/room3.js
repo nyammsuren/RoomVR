@@ -786,21 +786,146 @@ export function createRoom3(scene, camera, renderer) {
         const isEnter = key === '✓';
         const isDel   = key === '←';
         const btn = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.11, 0.11),
+            new THREE.PlaneGeometry(0.036, 0.036),
             new THREE.MeshBasicMaterial({ map: makeKeyBtn(key, isEnter, isDel), transparent: true, side: THREE.DoubleSide })
         );
         const col = i % 3;
         const row = Math.floor(i / 3);
-        btn.position.set((col - 1) * 0.13, -row * 0.13, 0);
+        btn.position.set((col - 1) * 0.042, -row * 0.042, 0);
         btn.userData = { kind: 'wifiKey', key };
         numpadGroup.add(btn);
     });
 
-    // numpad байрлал — ноутбүүк дэлгэцний урд, зүүн талд
-    numpadGroup.position.set(LX - 0.28, TS + 0.55, LZ + 0.05);
+    // numpad байрлал — ноутбүүкийн гарын хэсэг дээр хавтгай
+    numpadGroup.rotation.x = -Math.PI / 2;
+    numpadGroup.position.set(LX, TS + 0.018, LZ + 0.06);
 
     // Нууц үг оруулсан эсэхийг хадгалах
     const wifiBtn1 = { visible: false }; // compatibility stub — numpad орлуулсан
+
+    // ======================
+    // НОУТБҮҮКИЙН САНДАЛ
+    // ======================
+    // Ноутбүүк: LX=4.3, LZ=-2.2 → сандал урд талд z = LZ+0.65
+    const lapChairX = LX, lapChairZ = LZ + 0.9;
+
+    const lapChairG = new THREE.Group();
+    const chM  = mat(0x2a3a5a, 0.6);
+    const chLM = mat(0x1a1a1a, 0.4, 0.4);
+
+    // Суудал
+    const lapSeat = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.08, 0.42), chM);
+    lapSeat.position.set(0, 0.50, 0);
+    lapSeat.userData = {
+        kind: "studentChair",
+        sitX: lapChairX, sitY: 1.1, sitZ: lapChairZ,
+        lookX: LX, lookY: TS + 0.16, lookZ: LZ - 0.08
+    };
+    lapChairG.add(lapSeat);
+
+    // Ар тулгуур
+    const lapBack = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.42, 0.04), chM);
+    lapBack.position.set(0, 0.73, -0.20);
+    lapBack.userData = lapSeat.userData;
+    lapChairG.add(lapBack);
+
+    // 4 хөл
+    [[0.19, 0.18], [0.19, -0.18], [-0.19, 0.18], [-0.19, -0.18]].forEach(([dx, dz]) => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), chLM);
+        leg.position.set(dx, 0.24, dz);
+        lapChairG.add(leg);
+    });
+    // Ар хөлийн баганууд
+    [0.19, -0.19].forEach(dx => {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.44, 0.04), chLM);
+        p.position.set(dx, 0.72, -0.20);
+        lapChairG.add(p);
+    });
+
+    lapChairG.position.set(lapChairX, 0, lapChairZ);
+    lapChairG.rotation.y = Math.PI; // ноутбүүк руу харна
+    room.add(lapChairG);
+
+    // "Суух" label — суудлын дээр
+    const lapSitCvs = document.createElement("canvas");
+    lapSitCvs.width = 192; lapSitCvs.height = 48;
+    const lsc = lapSitCvs.getContext("2d");
+    lsc.fillStyle = "rgba(0,0,0,0.55)";
+    lsc.fillRect(0, 0, 192, 48);
+    lsc.fillStyle = "#ffdd44";
+    lsc.font = "bold 24px Arial";
+    lsc.textAlign = "center"; lsc.textBaseline = "middle";
+    lsc.fillText("Суух", 96, 24);
+    const lapSitLabel = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.38, 0.10),
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(lapSitCvs), transparent: true, depthTest: false })
+    );
+    lapSitLabel.position.set(lapChairX, 0.56, lapChairZ);
+    lapSitLabel.rotation.x = -Math.PI / 2;
+    lapSitLabel.userData = lapSeat.userData; // VR raycast-д суух боломжтой болгоно
+    room.add(lapSitLabel);
+
+    // ======================
+    // PC САНДАЛНУУД — PC1, PC2-н урд
+    // ======================
+    // PC г.position = (def.x, TY+0.03, def.z), монитор (-0.35, 0.35, -0.038) дотор
+    // PC1: def.x=-2.0 → монитор world (-2.35, 1.16, 2.162)
+    // PC2: def.x=2.0  → монитор world (1.65,  1.16, 2.162)
+    [
+        { sitX: -2.35, sitZ: 3.0, lookX: -2.35, lookZ: 2.16 },
+        { sitX:  1.65, sitZ: 3.0, lookX:  1.65, lookZ: 2.16 },
+    ].forEach(({ sitX, sitZ, lookX, lookZ }) => {
+        const cg  = new THREE.Group();
+        const pcChM  = mat(0x2a3a5a, 0.6);
+        const pcChLM = mat(0x1a1a1a, 0.4, 0.4);
+
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.04, 0.42), pcChM);
+        seat.position.set(0, 0.48, 0);
+        seat.userData = {
+            kind: "studentChair",
+            sitX, sitY: 1.1, sitZ,
+            lookX, lookY: 1.16, lookZ
+        };
+        cg.add(seat);
+
+        const back = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.42, 0.04), pcChM);
+        back.position.set(0, 0.73, 0.20);
+        back.userData = seat.userData;
+        cg.add(back);
+
+        [[0.19, 0.18], [0.19, -0.18], [-0.19, 0.18], [-0.19, -0.18]].forEach(([dx, dz]) => {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), pcChLM);
+            leg.position.set(dx, 0.24, dz);
+            cg.add(leg);
+        });
+        [0.19, -0.19].forEach(dx => {
+            const p = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.44, 0.04), pcChLM);
+            p.position.set(dx, 0.72, 0.20);
+            cg.add(p);
+        });
+
+        cg.position.set(sitX, 0, sitZ);
+        room.add(cg);
+
+        // "Суух" label
+        const sc = document.createElement("canvas");
+        sc.width = 192; sc.height = 48;
+        const sx = sc.getContext("2d");
+        sx.fillStyle = "rgba(0,0,0,0.55)";
+        sx.fillRect(0, 0, 192, 48);
+        sx.fillStyle = "#ffdd44";
+        sx.font = "bold 24px Arial";
+        sx.textAlign = "center"; sx.textBaseline = "middle";
+        sx.fillText("Суух", 96, 24);
+        const sl = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.38, 0.10),
+            new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthTest: false })
+        );
+        sl.position.set(sitX, 0.54, sitZ);
+        sl.rotation.x = -Math.PI / 2;
+        sl.userData = seat.userData; // VR raycast-д суух боломжтой болгоно
+        room.add(sl);
+    });
 
     // ======================
     // GAME STATE
@@ -1218,6 +1343,10 @@ export function createRoom3(scene, camera, renderer) {
                 wifiRingR.visible = true;
                 wifiIconMesh.visible = true;
                 wifiDots.forEach(d => { d.visible = true; });
+                // WiFi холбогдсонд оноо нэм
+                score++;
+                renderScore();
+                showFeedback('📶 WiFi МУБИС холбогдлоо! +1 оноо', 'ok');
             }
         } else if (wifiState === 3) {
             wifiDataT += delta;

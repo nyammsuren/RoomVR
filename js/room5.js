@@ -274,6 +274,7 @@ export function createRoom5(scene) {
 
         const back = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.38, 0.04), cM);
         back.position.set(0, 0.66, -0.17);
+        back.userData = seat.userData;
         cg.add(back);
 
         // Ширээ рүү харсан хөл (богино — тавцанд хүрнэ)
@@ -374,35 +375,33 @@ export function createRoom5(scene) {
     bc.fillStyle = "rgba(255,255,200,0.7)";
     bc.fillText("Star Topology", 512, 570);
 
+    // Самбар — арын хана (z = -RD/2), зүүн тал x = -2.5
     const boardMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(3.2, 1.95),
         new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(boardCvs) })
     );
-    boardMesh.position.set(-1.5, 2.1, -RD / 2 + 0.05);
+    boardMesh.position.set(-2.5, 2.1, -RD / 2 + 0.05);
     room.add(boardMesh);
 
-    // Самбарын хүрээ
     const boardFrame = new THREE.Mesh(
         new THREE.BoxGeometry(3.3, 2.05, 0.05),
         mat(0x4a3010, 0.6)
     );
-    boardFrame.position.set(-1.5, 2.1, -RD / 2 + 0.02);
+    boardFrame.position.set(-2.5, 2.1, -RD / 2 + 0.02);
     room.add(boardFrame);
 
-    // Самбарын доор шохойн тавиур
     const chalTray = new THREE.Mesh(
         new THREE.BoxGeometry(3.2, 0.06, 0.1),
         mat(0x5a4020, 0.7)
     );
-    chalTray.position.set(-1.5, 1.09, -RD / 2 + 0.1);
+    chalTray.position.set(-2.5, 1.09, -RD / 2 + 0.1);
     room.add(chalTray);
 
-    // Хугархай шохойнууд тавиур дээр
     const chalkMat = new THREE.MeshStandardMaterial({ color: 0xeeeecc, roughness: 0.9 });
     [
-        { x: -1.2, rz: 0.18,  len: 0.07 },
-        { x: -1.5, rz: -0.12, len: 0.055 },
-        { x: -1.75, rz: 0.25,  len: 0.065 },
+        { x: -2.2, rz: 0.18,  len: 0.07 },
+        { x: -2.5, rz: -0.12, len: 0.055 },
+        { x: -2.8, rz: 0.25,  len: 0.065 },
     ].forEach(({ x, rz, len }) => {
         const ch = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, len, 8), chalkMat);
         ch.rotation.z = Math.PI / 2 + rz;
@@ -413,131 +412,59 @@ export function createRoom5(scene) {
     // ======================
     // ТЕЛЕВИЗ — самбарын хажууд
     // ======================
+    // TV — арын хана, баруун тал x = 2.5
     const tvFrm = new THREE.Mesh(
-        new THREE.BoxGeometry(1.6, 0.95, 0.08),
+        new THREE.BoxGeometry(3.7, 2.15, 0.08),
         mat(0x111111, 0.2, 0.7)
     );
-    tvFrm.position.set(3.0, 2.1, -RD / 2 + 0.06);
+    tvFrm.position.set(2.5, 2.1, -RD / 2 + 0.03);
     tvFrm.castShadow = true;
+    tvFrm.userData = { kind: "tv" };
     room.add(tvFrm);
 
-    // TV дэлгэц — YouTube projected iframe
-    const COMP_YT_ID    = "qJ1WrPHNCnc";
-    const COMP_YT_EMBED = `https://www.youtube.com/embed/${COMP_YT_ID}`;
+    // TV дэлгэц — lab.mp4
+    const tvVid = document.createElement("video");
+    tvVid.src = "./js/lab.mp4";
+    tvVid.loop = true;
+    tvVid.muted = true;
+    tvVid.playsInline = true;
+    tvVid.preload = "auto";
+    tvVid.style.display = "none";
+    document.body.appendChild(tvVid);
 
-    const tvScrCvs = document.createElement("canvas");
-    tvScrCvs.width = 720; tvScrCvs.height = 400;
-    const tvScrCtx = tvScrCvs.getContext("2d");
-    const tvScrTex = new THREE.CanvasTexture(tvScrCvs);
-    tvScrTex.minFilter = THREE.LinearFilter;
-    tvScrTex.magFilter = THREE.LinearFilter;
-
-    function drawCompTVIdle() {
-        tvScrCtx.fillStyle = "#050d1a";
-        tvScrCtx.fillRect(0, 0, 720, 400);
-        tvScrCtx.fillStyle = "#ff0000";
-        tvScrCtx.beginPath();
-        if (tvScrCtx.roundRect) tvScrCtx.roundRect(240, 110, 240, 140, 18);
-        else tvScrCtx.rect(240, 110, 240, 140);
-        tvScrCtx.fill();
-        tvScrCtx.fillStyle = "#ffffff";
-        tvScrCtx.beginPath();
-        tvScrCtx.moveTo(302, 140); tvScrCtx.lineTo(302, 228); tvScrCtx.lineTo(418, 184);
-        tvScrCtx.closePath(); tvScrCtx.fill();
-        tvScrCtx.fillStyle = "#aaa";
-        tvScrCtx.font = "bold 24px Arial"; tvScrCtx.textAlign = "center";
-        tvScrCtx.fillText("YouTube", 360, 285);
-        tvScrCtx.fillStyle = "#666";
-        tvScrCtx.font = "18px Arial";
-        tvScrCtx.fillText("▶  Дарж тоглуулна уу", 360, 320);
-        tvScrTex.needsUpdate = true;
-    }
-    drawCompTVIdle();
+    const tvVidTex = new THREE.VideoTexture(tvVid);
+    tvVidTex.minFilter = THREE.LinearFilter;
+    tvVidTex.magFilter = THREE.LinearFilter;
 
     const tvScr = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.44, 0.80),
-        new THREE.MeshBasicMaterial({ map: tvScrTex })
+        new THREE.PlaneGeometry(3.5, 1.97),
+        new THREE.MeshBasicMaterial({ map: tvVidTex })
     );
-    tvScr.position.set(3.0, 2.1, -RD / 2 + 0.11);
+    tvScr.position.set(2.5, 2.1, -RD / 2 + 0.08);
     tvScr.userData = { kind: "tv" };
     room.add(tvScr);
 
-    // TV дэлгэцийн projected iframe
-    // TV screen world pos: (3.0, 2.1, -RD/2+0.11) = (3.0, 2.1, -4.89)
-    const _compTvCorners = [
-        new THREE.Vector3(3.0 - 0.72, 2.1 + 0.40, -4.89),
-        new THREE.Vector3(3.0 + 0.72, 2.1 + 0.40, -4.89),
-        new THREE.Vector3(3.0 + 0.72, 2.1 - 0.40, -4.89),
-        new THREE.Vector3(3.0 - 0.72, 2.1 - 0.40, -4.89),
-    ];
-
-    const compYtDiv = document.createElement("div");
-    compYtDiv.style.cssText =
-        "display:none;position:fixed;z-index:100;overflow:hidden;border-radius:2px;pointer-events:auto;";
-    const compYtIframe = document.createElement("iframe");
-    compYtIframe.style.cssText = "width:100%;height:100%;border:none;";
-    compYtIframe.allow = "autoplay;fullscreen;picture-in-picture";
-    compYtIframe.allowFullscreen = true;
-    compYtDiv.appendChild(compYtIframe);
-    document.body.appendChild(compYtDiv);
-
-    const compYtClose = document.createElement("button");
-    compYtClose.textContent = "✕";
-    compYtClose.style.cssText =
-        "display:none;position:fixed;z-index:101;width:24px;height:24px;" +
-        "background:rgba(0,0,0,0.75);color:#fff;border:none;border-radius:50%;" +
-        "font-size:13px;line-height:24px;text-align:center;cursor:pointer;";
-    document.body.appendChild(compYtClose);
-
-    function closeCompYT() {
-        compYtOpen = false;
-        compYtDiv.style.display  = "none";
-        compYtClose.style.display = "none";
-        compYtIframe.src = "";
-        drawCompTVIdle();
-    }
-    compYtClose.onclick = closeCompYT;
-
-    function updateCompYtPos(cam) {
-        if (!compYtOpen) return;
-        const W = window.innerWidth, H = window.innerHeight;
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        _compTvCorners.forEach(wv => {
-            const v = wv.clone().project(cam);
-            const sx = (v.x + 1) / 2 * W;
-            const sy = (-v.y + 1) / 2 * H;
-            if (sx < minX) minX = sx; if (sx > maxX) maxX = sx;
-            if (sy < minY) minY = sy; if (sy > maxY) maxY = sy;
-        });
-        compYtDiv.style.left   = `${minX}px`;
-        compYtDiv.style.top    = `${minY}px`;
-        compYtDiv.style.width  = `${maxX - minX}px`;
-        compYtDiv.style.height = `${maxY - minY}px`;
-        compYtClose.style.left = `${maxX - 28}px`;
-        compYtClose.style.top  = `${minY + 3}px`;
-    }
-
-    let compYtOpen = false;
     room.userData.toggleVideo = () => {
-        compYtOpen = !compYtOpen;
-        if (compYtOpen) {
-            compYtIframe.src = `${COMP_YT_EMBED}?autoplay=1&rel=0`;
-            compYtDiv.style.display  = "block";
-            compYtClose.style.display = "block";
+        if (tvVid.paused) {
+            tvVid.muted = true;
+            tvVid.play()
+                .then(() => { tvVid.muted = false; })
+                .catch(e => console.warn("TV play error:", e));
         } else {
-            closeCompYT();
+            tvVid.pause();
+            tvVid.currentTime = 0;
         }
     };
 
     const tvLed = new THREE.Mesh(
-        new THREE.BoxGeometry(1.44, 0.025, 0.03),
+        new THREE.BoxGeometry(3.5, 0.025, 0.03),
         new THREE.MeshStandardMaterial({ color: 0x1a88ff, emissive: 0x1a88ff, emissiveIntensity: 1.5 })
     );
-    tvLed.position.set(3.0, 1.59, -RD / 2 + 0.1);
+    tvLed.position.set(2.5, 1.005, -RD / 2 + 0.05);
     room.add(tvLed);
 
     const tvLight = new THREE.PointLight(0x2255ff, 1.5, 4);
-    tvLight.position.set(3.0, 2.1, -RD / 2 + 0.8);
+    tvLight.position.set(2.5, 2.1, -RD / 2 + 0.8);
     room.add(tvLight);
 
     // ======================
@@ -674,6 +601,7 @@ export function createRoom5(scene) {
     );
     chairLbl.rotation.x = -Math.PI / 2;
     chairLbl.position.set(-3, 0.507, -4.75);
+    chairLbl.userData = { kind: "compTeacherChair" };
     room.add(chairLbl);
 
     // БАГШИЙН МОНИТОР — ширээн дээр
@@ -1011,7 +939,7 @@ export function createRoom5(scene) {
     };
 
     room.userData.update = (camera) => {
-        updateCompYtPos(camera);
+        if (!tvVid.paused && !tvVid.ended) tvVidTex.needsUpdate = true;
         const t = performance.now() * 0.001;
         backDoor.material.opacity = 0.65 + 0.2 * Math.sin(t * 1.8);
         if (bearGroup5 && camera) {

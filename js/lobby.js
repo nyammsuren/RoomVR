@@ -97,6 +97,7 @@ export function createLobby(scene) {
         { kind: "toARLab",    color: 0xbb33aa, hex: "#bb33aa", x: -RW / 2 + 0.12, z: -2,            ry: Math.PI / 2,  label: "AR лаборатори" },
         { kind: "toCompLab",  color: 0xff6600, hex: "#ff6600", x:  RW / 2 - 0.12, z: -2,            ry:-Math.PI / 2,  label: "Компьютерийн лаборатори" },
         { kind: "toLibrary",  color: 0xddaa00, hex: "#ddaa00", x:  RW / 2 - 0.12, z:  2,            ry:-Math.PI / 2,  label: "Номын сан" },
+        { kind: "toServer",   color: 0x00ccff, hex: "#00ccff", x: -RW / 2 + 0.12, z:  2,            ry: Math.PI / 2,  label: "Серверийн өрөө" },
     ];
 
     const glowLights = [];
@@ -341,42 +342,7 @@ export function createLobby(scene) {
     clockMesh.position.set(0, RH - 2.8, -RD / 2 + 0.06);
     room.add(clockMesh);
 
-    // === VR-ААС ГАРАХ ТОВЧ (зүүн хана, z=2) ===
-    (() => {
-        const exitCvs = document.createElement("canvas");
-        exitCvs.width = 512; exitCvs.height = 256;
-        const ec = exitCvs.getContext("2d");
-        ec.fillStyle = "#cc0022";
-        ec.beginPath();
-        if (ec.roundRect) ec.roundRect(8, 8, 496, 240, 24);
-        else ec.rect(8, 8, 496, 240);
-        ec.fill();
-        ec.strokeStyle = "#ff4466";
-        ec.lineWidth = 5;
-        ec.stroke();
-        ec.fillStyle = "#ffffff";
-        ec.font = "bold 52px Arial";
-        ec.textAlign = "center";
-        ec.textBaseline = "middle";
-        ec.fillText("⏻ VR-аас гарах", 256, 110);
-        ec.font = "32px Arial";
-        ec.fillStyle = "#ffaaaa";
-        ec.fillText("(trigger дарна уу)", 256, 175);
-
-        const exitBtn = new THREE.Mesh(
-            new THREE.PlaneGeometry(1.6, 0.8),
-            new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(exitCvs), transparent: true })
-        );
-        exitBtn.position.set(-RW / 2 + 0.06, 1.7, 2);
-        exitBtn.rotation.y = Math.PI / 2;
-        exitBtn.userData = { kind: "exitVR" };
-        room.add(exitBtn);
-
-        // Гэрэл
-        const el = new THREE.PointLight(0xff2244, 1.5, 3);
-        el.position.set(-RW / 2 + 0.5, 1.7, 2);
-        room.add(el);
-    })();
+    // VR-аас гарах товч арилгасан — серверийн өрөөний portal-тай давхардаж байсан
 
     room.userData.update = (camera) => {
         const t = performance.now() * 0.001;

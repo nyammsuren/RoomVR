@@ -321,6 +321,9 @@ export function createRoom2(scene) {
         const dm = mat(0x8B6914, 0.7);
         const lm = mat(0x333333, 0.5, 0.3);
 
+        const chairUD = { kind: "studentChair",
+            sitX: x, sitY: 1.1, sitZ: z + 0.75,
+            lookX: -5.5, lookY: 1.7, lookZ: -1.5 };
         [[x, 0.75, z, 1, 0.05, 0.6],
          [x, 0.48, z + 0.55, 0.5, 0.04, 0.45],
          [x, 0.70, z + 0.77, 0.5, 0.40, 0.04]
@@ -329,11 +332,7 @@ export function createRoom2(scene) {
             mesh.position.set(px, py, pz);
             mesh.castShadow = false;
             mesh.receiveShadow = true;
-            if (idx === 1) {
-                mesh.userData = { kind: "studentChair",
-                    sitX: px, sitY: 1.1, sitZ: pz + 0.2,
-                    lookX: -5.5, lookY: 1.7, lookZ: -1.5 };
-            }
+            if (idx === 1 || idx === 2) mesh.userData = chairUD; // суудал + ар нуруулга хоёулаа
             room.add(mesh);
         });
 
@@ -464,6 +463,7 @@ export function createRoom2(scene) {
     );
     sitLabel.position.set(-3, 0.507, -4.3);
     sitLabel.rotation.x = -Math.PI / 2;
+    sitLabel.userData = { kind: "teacherChair" };
     room.add(sitLabel);
 
     // ======================
@@ -638,8 +638,15 @@ export function createRoom2(scene) {
     tvG.add(tvScreen);
 
     room.userData.toggleVideo = () => {
-        if (vid.paused) { vid.muted = false; vid.play().catch(e => console.warn("Video:", e)); }
-        else vid.pause();
+        if (vid.paused) {
+            vid.muted = true;
+            vid.play()
+                .then(() => { vid.muted = false; })
+                .catch(e => console.warn("Video play error:", e));
+        } else {
+            vid.pause();
+            vid.currentTime = 0;
+        }
     };
 
     const ledBar = new THREE.Mesh(
