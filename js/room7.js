@@ -429,56 +429,67 @@ export function createRoom7(scene) {
             const rName = termState === 1 ? "Router 1" : "Router 2";
             const rGW   = termState === 1 ? "192.168.1.1" : "10.0.0.1";
             const rNet  = termState === 1 ? "192.168.1.0/24" : "10.0.0.0/8";
+            // Сонголтын IP жагсаалт — зөв хариулт дунд, эсвэл өөр байрлалд
+            const opts = termState === 1
+                ? ["192.168.0.1", "192.168.1.1", "10.0.0.1"]
+                : ["10.0.0.1",   "10.1.0.1",    "192.168.1.1"];
 
+            // Router info
             termCtx.fillStyle = "#0d1e30"; termCtx.fillRect(20, 70, W-40, 90);
             termCtx.fillStyle = "#88ccff"; termCtx.font = "bold 22px monospace"; termCtx.textAlign = "left";
             termCtx.fillText(`${rName} — Default Route тохируулна уу`, 36, 100);
             termCtx.fillStyle = "#4477aa"; termCtx.font = "17px monospace";
             termCtx.fillText(`Сүлжээ: ${rNet}  |  Gateway: ${rGW}`, 36, 132);
 
-            // Terminal area
-            termCtx.fillStyle = "#050c0a"; termCtx.fillRect(20, 180, W-40, H-240);
+            // Terminal (гараас бичих хэсэг)
+            termCtx.fillStyle = "#050c0a"; termCtx.fillRect(20, 180, W-40, 140);
             termCtx.strokeStyle = "#0d3020"; termCtx.lineWidth = 1;
-            termCtx.strokeRect(20, 180, W-40, H-240);
-
+            termCtx.strokeRect(20, 180, W-40, 140);
             termCtx.fillStyle = "#00cc44"; termCtx.font = "20px monospace"; termCtx.textAlign = "left";
-            termCtx.fillText(`${rName}(config)#`, 40, 240);
-
-            // Command line
+            termCtx.fillText(`${rName}(config)#`, 40, 215);
             const prompt = `${rName}(config)# `;
             const cursor = cursorBlink ? "█" : " ";
             termCtx.fillStyle = "#00ff88"; termCtx.font = "bold 22px monospace";
-            termCtx.fillText(prompt + currentCmd + cursor, 40, 320);
+            termCtx.fillText(prompt + currentCmd + cursor, 40, 290);
 
-            // Help hint
-            termCtx.fillStyle = "#224433"; termCtx.font = "16px monospace"; termCtx.textAlign = "left";
-            termCtx.fillText(`Жишээ: ip route 0.0.0.0 0.0.0.0 ${rGW}`, 40, H-130);
+            // Хуваагч
+            termCtx.fillStyle = "#1a3344"; termCtx.font = "bold 18px monospace"; termCtx.textAlign = "center";
+            termCtx.fillText("── Gateway IP сонгоно уу ──", W/2, 348);
 
-            // ← Буцах товч (зүүн доод)
-            termCtx.fillStyle = "#1a1a2a";
-            termCtx.fillRect(20, H-100, 340, 72);
+            // 3 IP товч — canvas y=360..480, UV v=0.36..0.52
+            const btnY = 360, btnH = 120;
+            const btnDefs = [{ x: 20, w: 365 }, { x: 417, w: 365 }, { x: 815, w: 365 }];
+            opts.forEach((ip, idx) => {
+                const { x, w } = btnDefs[idx];
+                termCtx.fillStyle = "#091828";
+                termCtx.fillRect(x, btnY, w, btnH);
+                termCtx.strokeStyle = "#1a4477"; termCtx.lineWidth = 2;
+                termCtx.strokeRect(x, btnY, w, btnH);
+                termCtx.fillStyle = "#55aaff"; termCtx.font = "bold 30px monospace"; termCtx.textAlign = "center";
+                termCtx.fillText(ip, x + w / 2, btnY + 72);
+            });
+
+            // Гарын тэмдэглэл
+            termCtx.fillStyle = "#1a2a22"; termCtx.font = "15px monospace"; termCtx.textAlign = "left";
+            termCtx.fillText("Гараас: ip route 0.0.0.0 0.0.0.0 <gateway>  →  Enter дарна", 40, 512);
+
+            // ← Буцах товч — canvas y=540..605, UV v=0.193..0.28
+            termCtx.fillStyle = "#141422";
+            termCtx.fillRect(20, 540, 340, 65);
             termCtx.strokeStyle = "#334455"; termCtx.lineWidth = 2;
-            termCtx.strokeRect(20, H-100, 340, 72);
-            termCtx.fillStyle = "#5599bb"; termCtx.font = "bold 24px Arial"; termCtx.textAlign = "center";
-            termCtx.fillText("← Буцах  [Esc]", 190, H-56);
-
-            // ✓ Илгээх товч (баруун доод)
-            termCtx.fillStyle = "#062010";
-            termCtx.fillRect(W-360, H-100, 340, 72);
-            termCtx.strokeStyle = "#1a6633"; termCtx.lineWidth = 2;
-            termCtx.strokeRect(W-360, H-100, 340, 72);
-            termCtx.fillStyle = "#00dd66"; termCtx.font = "bold 24px Arial";
-            termCtx.fillText("✓ Илгээх  [Enter]", W-190, H-56);
+            termCtx.strokeRect(20, 540, 340, 65);
+            termCtx.fillStyle = "#5599bb"; termCtx.font = "bold 22px Arial"; termCtx.textAlign = "center";
+            termCtx.fillText("← Буцах  [Esc]", 190, 578);
 
             // Feedback
             if (feedbackMsg && feedbackTimer > 0) {
                 termCtx.fillStyle = feedbackOk ? "rgba(0,40,0,0.92)" : "rgba(40,0,0,0.92)";
-                termCtx.fillRect(20, H-190, W-40, 60);
+                termCtx.fillRect(20, 635, W-40, 90);
                 termCtx.strokeStyle = feedbackOk ? "#00ff44" : "#ff2200"; termCtx.lineWidth = 2;
-                termCtx.strokeRect(20, H-190, W-40, 60);
+                termCtx.strokeRect(20, 635, W-40, 90);
                 termCtx.fillStyle = feedbackOk ? "#00ff88" : "#ff6666";
-                termCtx.font = "bold 22px Arial"; termCtx.textAlign = "center";
-                termCtx.fillText(feedbackMsg, W/2, H-152);
+                termCtx.font = "bold 26px Arial"; termCtx.textAlign = "center";
+                termCtx.fillText(feedbackMsg, W/2, 686);
             }
         }
 
@@ -577,34 +588,41 @@ export function createRoom7(scene) {
     // ======================
     // CLICK HANDLER
     // ======================
-    room.userData.onClick = (raycaster, isVR = false) => {
+    room.userData.onClick = (raycaster) => {
         const hits = raycaster.intersectObjects(room.children, true);
         for (const hit of hits) {
             if (hit.object === termScr && hit.uv) {
                 const u = hit.uv.x;
-                const v = hit.uv.y; // v=0 доод, v=1 дээд
+                const v = hit.uv.y; // v=0 доод, v=1 дээд (Three.js UV)
+
                 if (termState === 0) {
                     // Overview: зүүн тал = Router1, баруун тал = Router2
-                    if (u < 0.5) {
-                        termState = 1;
-                        // VR горимд зөв тушаал урьдчилан бичнэ (гар байхгүй тул)
-                        currentCmd = isVR ? "ip route 0.0.0.0 0.0.0.0 192.168.1.1" : "";
-                    } else {
-                        termState = 2;
-                        currentCmd = isVR ? "ip route 0.0.0.0 0.0.0.0 10.0.0.1" : "";
-                    }
+                    termState = u < 0.5 ? 1 : 2;
+                    currentCmd = "";
                     drawTerminal();
-                } else {
-                    // Input горим: доод товчнуудыг шалгана (v < 0.14 = доод 14%)
-                    if (v < 0.14) {
-                        if (u < 0.35) {
-                            // ← Буцах товч
-                            room.userData.onKey("Escape");
-                        } else if (u > 0.65) {
-                            // ✓ Илгээх товч
-                            room.userData.onKey("Enter");
-                        }
+                    return;
+                }
+
+                // ── Input горим: IP товчнууд (canvas y=360..480 → UV v=0.36..0.52) ──
+                if (v >= 0.36 && v <= 0.52) {
+                    const opts = termState === 1
+                        ? ["192.168.0.1", "192.168.1.1", "10.0.0.1"]
+                        : ["10.0.0.1",   "10.1.0.1",    "192.168.1.1"];
+                    let selectedIP = null;
+                    if      (u >= 0.017 && u <= 0.321) selectedIP = opts[0]; // зүүн товч
+                    else if (u >= 0.347 && u <= 0.652) selectedIP = opts[1]; // дунд товч
+                    else if (u >= 0.679 && u <= 0.983) selectedIP = opts[2]; // баруун товч
+                    if (selectedIP) {
+                        currentCmd = `ip route 0.0.0.0 0.0.0.0 ${selectedIP}`;
+                        room.userData.onKey("Enter");
                     }
+                    return;
+                }
+
+                // ← Буцах товч (canvas y=540..605 → UV v=0.193..0.28, u<0.3)
+                if (v >= 0.193 && v <= 0.28 && u <= 0.3) {
+                    room.userData.onKey("Escape");
+                    return;
                 }
                 return;
             }

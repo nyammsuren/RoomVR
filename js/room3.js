@@ -798,7 +798,7 @@ export function createRoom3(scene, camera, renderer) {
 
     // numpad байрлал — ноутбүүкийн гарын хэсэг дээр хавтгай
     numpadGroup.rotation.x = -Math.PI / 2;
-    numpadGroup.position.set(LX, TS + 0.018, LZ + 0.06);
+    numpadGroup.position.set(LX, TS + 0.04, LZ - 0.04);
 
     // Нууц үг оруулсан эсэхийг хадгалах
     const wifiBtn1 = { visible: false }; // compatibility stub — numpad орлуулсан

@@ -315,7 +315,7 @@ function handleControllerSelect(ctrl) {
     if (currentRoom === 3) { arLabR.userData.onClick?.(raycasterVR); return; }
     if (currentRoom === 4) { compLabR.userData.onClick?.(raycasterVR); return; }
     if (currentRoom === 5) { libraryR.userData.onClick?.(raycasterVR); return; }
-    if (currentRoom === 6) { serverR.userData.onClick?.(raycasterVR, true);  return; }
+    if (currentRoom === 6) { serverR.userData.onClick?.(raycasterVR); return; }
 
     // Teleport: шалган дарахад тоглогчийг шилжүүлэх
     let tObj = hits[0].object;
