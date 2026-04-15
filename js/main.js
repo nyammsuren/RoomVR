@@ -177,6 +177,7 @@ const roomNames = { 0:"Угтах танхим", 1:"Лекцийн танхим"
 
 window.goRoom = (n) => {
     isSitting = false;
+    roomMap[currentRoom]?.userData?.onLeave?.(); // одоогийн өрөөний cleanup
     Object.values(roomMap).forEach(r => { r.visible = false; });
     roomMap[n].visible = true;
     currentRoom = n;

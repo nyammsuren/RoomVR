@@ -900,24 +900,47 @@ export function createRoom5(scene) {
         }
         termOpen = false;
         cmdBtnGroup.visible = false;
-        if (termInput) { termInput.remove(); termInput = null; }
+        if (termForm)  { termForm.remove();  termForm  = null; }
+        termInput = null;
     }
 
-    // Non-VR: HTML input
+    // HTML input + submit товч (VR virtual keyboard-тай нийцтэй)
     let termInput = null;
+    let termForm  = null;
     room.userData.openTerminal = (scrMesh) => {
         openTerminal(scrMesh);
         if (termOpen && !document.querySelector('#termInput')) {
+            termForm = document.createElement("form");
+            termForm.style.cssText = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:9999;";
+
             termInput = document.createElement("input");
             termInput.id = "termInput";
-            termInput.style.cssText = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:400px;padding:10px;font:18px monospace;background:#0d1117;color:#00ff88;border:1px solid #00ff88;border-radius:4px;outline:none;z-index:9999;";
+            termInput.style.cssText = "width:400px;padding:10px;font:18px monospace;background:#0d1117;color:#00ff88;border:1px solid #00ff88;border-radius:4px;outline:none;";
             termInput.placeholder = "команд оруулна уу...";
-            document.body.appendChild(termInput);
+
+            const sendBtn = document.createElement("button");
+            sendBtn.type = "submit";
+            sendBtn.textContent = "→";
+            sendBtn.style.cssText = "padding:10px 16px;font:20px monospace;background:#0a2a10;color:#00ff88;border:1px solid #00ff88;border-radius:4px;cursor:pointer;";
+
+            termForm.appendChild(termInput);
+            termForm.appendChild(sendBtn);
+            document.body.appendChild(termForm);
+
+            // form submit — Enter дарах ба → товч хоёулаа энд ирнэ
+            termForm.addEventListener("submit", (e) => {
+                e.preventDefault();
+                const val = termInput.value.trim();
+                if (val) { runCommand(val); }
+                termInput.value = "";
+                termInput.focus();
+            });
+
             termInput.addEventListener("keydown", (e) => {
-                if (e.key === "Enter") { runCommand(termInput.value); termInput.value = ""; }
-                if (e.key === "Escape") closeTerminal();
+                if (e.key === "Escape") { closeTerminal(); }
                 e.stopPropagation();
             });
+
             setTimeout(() => termInput?.focus(), 50);
         }
     };
@@ -937,6 +960,8 @@ export function createRoom5(scene) {
             }
         }
     };
+
+    room.userData.onLeave = () => { closeTerminal(); };
 
     room.userData.update = (camera) => {
         if (!tvVid.paused && !tvVid.ended) tvVidTex.needsUpdate = true;

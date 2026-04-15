@@ -429,10 +429,6 @@ export function createRoom7(scene) {
             const rName = termState === 1 ? "Router 1" : "Router 2";
             const rGW   = termState === 1 ? "192.168.1.1" : "10.0.0.1";
             const rNet  = termState === 1 ? "192.168.1.0/24" : "10.0.0.0/8";
-            // Сонголтын IP жагсаалт — зөв хариулт дунд, эсвэл өөр байрлалд
-            const opts = termState === 1
-                ? ["192.168.0.1", "192.168.1.1", "10.0.0.1"]
-                : ["10.0.0.1",   "10.1.0.1",    "192.168.1.1"];
 
             // Router info
             termCtx.fillStyle = "#0d1e30"; termCtx.fillRect(20, 70, W-40, 90);
@@ -441,55 +437,35 @@ export function createRoom7(scene) {
             termCtx.fillStyle = "#4477aa"; termCtx.font = "17px monospace";
             termCtx.fillText(`Сүлжээ: ${rNet}  |  Gateway: ${rGW}`, 36, 132);
 
-            // Terminal (гараас бичих хэсэг)
-            termCtx.fillStyle = "#050c0a"; termCtx.fillRect(20, 180, W-40, 140);
+            // Terminal area
+            termCtx.fillStyle = "#050c0a"; termCtx.fillRect(20, 180, W-40, H-240);
             termCtx.strokeStyle = "#0d3020"; termCtx.lineWidth = 1;
-            termCtx.strokeRect(20, 180, W-40, 140);
+            termCtx.strokeRect(20, 180, W-40, H-240);
+
             termCtx.fillStyle = "#00cc44"; termCtx.font = "20px monospace"; termCtx.textAlign = "left";
-            termCtx.fillText(`${rName}(config)#`, 40, 215);
+            termCtx.fillText(`${rName}(config)#`, 40, 240);
+
+            // Command line
             const prompt = `${rName}(config)# `;
             const cursor = cursorBlink ? "█" : " ";
             termCtx.fillStyle = "#00ff88"; termCtx.font = "bold 22px monospace";
-            termCtx.fillText(prompt + currentCmd + cursor, 40, 290);
+            termCtx.fillText(prompt + currentCmd + cursor, 40, 320);
 
-            // Хуваагч
-            termCtx.fillStyle = "#1a3344"; termCtx.font = "bold 18px monospace"; termCtx.textAlign = "center";
-            termCtx.fillText("── Gateway IP сонгоно уу ──", W/2, 348);
-
-            // 3 IP товч — canvas y=360..480, UV v=0.36..0.52
-            const btnY = 360, btnH = 120;
-            const btnDefs = [{ x: 20, w: 365 }, { x: 417, w: 365 }, { x: 815, w: 365 }];
-            opts.forEach((ip, idx) => {
-                const { x, w } = btnDefs[idx];
-                termCtx.fillStyle = "#091828";
-                termCtx.fillRect(x, btnY, w, btnH);
-                termCtx.strokeStyle = "#1a4477"; termCtx.lineWidth = 2;
-                termCtx.strokeRect(x, btnY, w, btnH);
-                termCtx.fillStyle = "#55aaff"; termCtx.font = "bold 30px monospace"; termCtx.textAlign = "center";
-                termCtx.fillText(ip, x + w / 2, btnY + 72);
-            });
-
-            // Гарын тэмдэглэл
-            termCtx.fillStyle = "#1a2a22"; termCtx.font = "15px monospace"; termCtx.textAlign = "left";
-            termCtx.fillText("Гараас: ip route 0.0.0.0 0.0.0.0 <gateway>  →  Enter дарна", 40, 512);
-
-            // ← Буцах товч — canvas y=540..605, UV v=0.193..0.28
-            termCtx.fillStyle = "#141422";
-            termCtx.fillRect(20, 540, 340, 65);
-            termCtx.strokeStyle = "#334455"; termCtx.lineWidth = 2;
-            termCtx.strokeRect(20, 540, 340, 65);
-            termCtx.fillStyle = "#5599bb"; termCtx.font = "bold 22px Arial"; termCtx.textAlign = "center";
-            termCtx.fillText("← Буцах  [Esc]", 190, 578);
+            // Hint
+            termCtx.fillStyle = "#224433"; termCtx.font = "16px monospace";
+            termCtx.fillText(`Жишээ: ip route 0.0.0.0 0.0.0.0 ${rGW}`, 40, H-80);
+            termCtx.fillStyle = "#1a3322";
+            termCtx.fillText("[Enter] илгээх   [Esc] буцах   [Backspace] устгах", 40, H-50);
 
             // Feedback
             if (feedbackMsg && feedbackTimer > 0) {
                 termCtx.fillStyle = feedbackOk ? "rgba(0,40,0,0.92)" : "rgba(40,0,0,0.92)";
-                termCtx.fillRect(20, 635, W-40, 90);
+                termCtx.fillRect(20, H-160, W-40, 60);
                 termCtx.strokeStyle = feedbackOk ? "#00ff44" : "#ff2200"; termCtx.lineWidth = 2;
-                termCtx.strokeRect(20, 635, W-40, 90);
+                termCtx.strokeRect(20, H-160, W-40, 60);
                 termCtx.fillStyle = feedbackOk ? "#00ff88" : "#ff6666";
-                termCtx.font = "bold 26px Arial"; termCtx.textAlign = "center";
-                termCtx.fillText(feedbackMsg, W/2, 686);
+                termCtx.font = "bold 22px Arial"; termCtx.textAlign = "center";
+                termCtx.fillText(feedbackMsg, W/2, H-122);
             }
         }
 
@@ -586,6 +562,52 @@ export function createRoom7(scene) {
     portalRing.position.set(0, 1.2, RD/2-0.1); room.add(portalRing);
 
     // ======================
+    // HTML INPUT — VR virtual keyboard-д зориулсан
+    // ======================
+    let termInput = null;
+    let termForm  = null;
+
+    function openTermInput() {
+        if (termForm) return;
+        termForm = document.createElement("form");
+        termForm.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:9999;";
+
+        termInput = document.createElement("input");
+        termInput.style.cssText = "width:500px;padding:12px 16px;font:20px monospace;background:#0a0f18;color:#00ff88;border:2px solid #00ff88;border-radius:6px;outline:none;";
+        termInput.placeholder = "ip route 0.0.0.0 0.0.0.0 <gateway>...";
+        termInput.value = currentCmd;
+
+        const sendBtn = document.createElement("button");
+        sendBtn.type = "submit";
+        sendBtn.textContent = "→";
+        sendBtn.style.cssText = "padding:12px 18px;font:20px monospace;background:#0a2a10;color:#00ff88;border:2px solid #00ff88;border-radius:6px;cursor:pointer;";
+
+        termForm.appendChild(termInput);
+        termForm.appendChild(sendBtn);
+        document.body.appendChild(termForm);
+
+        termInput.addEventListener("input", () => {
+            currentCmd = termInput.value;
+            drawTerminal();
+        });
+        // form submit — Enter болон → товч хоёулаа
+        termForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            room.userData.onKey("Enter");
+        });
+        termInput.addEventListener("keydown", (e) => {
+            e.stopPropagation();
+            if (e.key === "Escape") { e.preventDefault(); room.userData.onKey("Escape"); }
+        });
+        setTimeout(() => termInput?.focus(), 50);
+    }
+
+    function closeTermInput() {
+        if (termForm) { termForm.remove(); termForm = null; }
+        termInput = null;
+    }
+
+    // ======================
     // CLICK HANDLER
     // ======================
     room.userData.onClick = (raycaster) => {
@@ -593,36 +615,12 @@ export function createRoom7(scene) {
         for (const hit of hits) {
             if (hit.object === termScr && hit.uv) {
                 const u = hit.uv.x;
-                const v = hit.uv.y; // v=0 доод, v=1 дээд (Three.js UV)
-
                 if (termState === 0) {
                     // Overview: зүүн тал = Router1, баруун тал = Router2
                     termState = u < 0.5 ? 1 : 2;
                     currentCmd = "";
+                    openTermInput();
                     drawTerminal();
-                    return;
-                }
-
-                // ── Input горим: IP товчнууд (canvas y=360..480 → UV v=0.36..0.52) ──
-                if (v >= 0.36 && v <= 0.52) {
-                    const opts = termState === 1
-                        ? ["192.168.0.1", "192.168.1.1", "10.0.0.1"]
-                        : ["10.0.0.1",   "10.1.0.1",    "192.168.1.1"];
-                    let selectedIP = null;
-                    if      (u >= 0.017 && u <= 0.321) selectedIP = opts[0]; // зүүн товч
-                    else if (u >= 0.347 && u <= 0.652) selectedIP = opts[1]; // дунд товч
-                    else if (u >= 0.679 && u <= 0.983) selectedIP = opts[2]; // баруун товч
-                    if (selectedIP) {
-                        currentCmd = `ip route 0.0.0.0 0.0.0.0 ${selectedIP}`;
-                        room.userData.onKey("Enter");
-                    }
-                    return;
-                }
-
-                // ← Буцах товч (canvas y=540..605 → UV v=0.193..0.28, u<0.3)
-                if (v >= 0.193 && v <= 0.28 && u <= 0.3) {
-                    room.userData.onKey("Escape");
-                    return;
                 }
                 return;
             }
@@ -634,41 +632,51 @@ export function createRoom7(scene) {
     // ======================
     room.userData.onKey = (key) => {
         if (termState === 0) return;
-        if (key === "Escape") { termState = 0; currentCmd = ""; feedbackMsg = ""; drawTerminal(); return; }
+        if (key === "Escape") {
+            termState = 0; currentCmd = ""; feedbackMsg = "";
+            closeTermInput(); drawTerminal(); return;
+        }
         if (key === "Enter") {
             const cmd = currentCmd.trim();
-            if (!cmd) return;
+            closeTermInput();
+            if (!cmd) { termState = 0; currentCmd = ""; drawTerminal(); return; }
             const expectedGW = termState === 1 ? "192.168.1.1" : "10.0.0.1";
-            const fmtOk = DEFAULT_ROUTE_RE.test(cmd);
+            const fmtOk  = DEFAULT_ROUTE_RE.test(cmd);
             const gwMatch = cmd.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
             const gwOk   = gwMatch && gwMatch[0] === expectedGW;
             if (fmtOk && gwOk) {
                 if (termState === 1) { r1Done = true; r1Error = false; }
                 else                 { r2Done = true; r2Error = false; }
                 feedbackMsg = "✅  Сүлжээ амжилттай тохирууллаа!";
-                feedbackOk  = true;
-                feedbackTimer = 2.5;
-                termState = 0; currentCmd = "";
+                feedbackOk = true;
             } else {
                 if (termState === 1) r1Error = true;
                 else                 r2Error = true;
                 feedbackMsg = "❌  Сүлжээ тохируулахад алдаа гарлаа!";
-                feedbackOk  = false;
-                feedbackTimer = 2.5;
-                termState = 0; currentCmd = "";
+                feedbackOk = false;
             }
-            drawTerminal();
-            return;
+            // termState хэвээр үлдэнэ — feedback харуулна, 2.5с дараа update loop state=0 болгоно
+            feedbackTimer = 2.5;
+            currentCmd = "";
+            drawTerminal(); return;
         }
-        if (key === "Backspace") { currentCmd = currentCmd.slice(0,-1); }
-        else if (key.length === 1 && currentCmd.length < 60) { currentCmd += key; }
-        drawTerminal();
+        // HTML input байхгүй үед (window keydown-аас) гараар бичих
+        if (!termInput) {
+            if (key === "Backspace") { currentCmd = currentCmd.slice(0, -1); }
+            else if (key.length === 1 && currentCmd.length < 60) { currentCmd += key; }
+            drawTerminal();
+        }
     };
 
     // ======================
     // UPDATE LOOP
     // ======================
     let blinkTimer=0, blinkOn=false, monTimer=0, tmpTimer=0, cursorTimer=0;
+
+    room.userData.onLeave = () => {
+        closeTermInput();
+        termState = 0; currentCmd = ""; feedbackMsg = ""; feedbackTimer = 0;
+    };
 
     room.userData.update = (delta) => {
         blinkTimer += delta;
@@ -679,7 +687,15 @@ export function createRoom7(scene) {
         monTimer += delta; if (monTimer > 1.5) { monTimer = 0; drawMonitor(); }
         tmpTimer += delta; if (tmpTimer > 3.0) { tmpTimer = 0; drawTemp(); }
 
-        if (feedbackTimer > 0) { feedbackTimer -= delta; if (feedbackTimer <= 0) { feedbackMsg = ""; drawTerminal(); } }
+        if (feedbackTimer > 0) {
+            feedbackTimer -= delta;
+            if (feedbackTimer <= 0) {
+                feedbackMsg = "";
+                // Feedback дууссаны дараа overview руу буцна
+                if (termState !== 0) { termState = 0; currentCmd = ""; }
+                drawTerminal();
+            }
+        }
 
         cursorTimer += delta;
         if (cursorTimer > 0.5) { cursorTimer = 0; cursorBlink = !cursorBlink; if (termState !== 0) drawTerminal(); }
