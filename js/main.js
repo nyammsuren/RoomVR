@@ -309,6 +309,16 @@ function handleControllerSelect(ctrl) {
         if (o?.userData?.kind) { obj = o; break; }
     }
 
+    // serverTerminal — UV шууд дамжуулна (double-raycast хийхгүй)
+    if (currentRoom === 6) {
+        for (const hit of hits) {
+            if (hit.object?.userData?.kind === "serverTerminal" && hit.uv) {
+                serverR.userData.onTerminalHit?.(hit.uv.x);
+                return;
+            }
+        }
+    }
+
     if (obj?.userData?.kind && handleKind(obj.userData.kind, true, obj)) return;
 
     if (currentRoom === 1) { lectureR.userData.onClick?.(raycasterVR); return; }

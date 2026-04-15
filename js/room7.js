@@ -302,7 +302,7 @@ export function createRoom7(scene) {
 
     const termScr = new THREE.Mesh(
         new THREE.PlaneGeometry(1.32, 0.83),
-        new THREE.MeshBasicMaterial({ map: termTex })
+        new THREE.MeshBasicMaterial({ map: termTex, side: THREE.DoubleSide })
     );
     termScr.position.set(0, 0.45, 0.012);
     termScr.userData = { kind: "serverTerminal" };
@@ -310,7 +310,7 @@ export function createRoom7(scene) {
 
     // Дэлгэцний гэрэл
     const termLight = new THREE.PointLight(0x88aaff, 0.6, 3);
-    termLight.position.set(0, TY+0.7, -2.5); room.add(termLight);
+    termLight.position.set(0, TY+1.8, -2.8); room.add(termLight);
 
     // ======================
     // ROUTER SIMULATION STATE
@@ -624,6 +624,16 @@ export function createRoom7(scene) {
                 }
                 return;
             }
+        }
+    };
+
+    // VR-д шууд UV дамжуулах handler (double-raycast хийхгүй)
+    room.userData.onTerminalHit = (u) => {
+        if (termState === 0) {
+            termState = u < 0.5 ? 1 : 2;
+            currentCmd = "";
+            openTermInput();
+            drawTerminal();
         }
     };
 

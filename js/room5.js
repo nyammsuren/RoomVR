@@ -931,9 +931,9 @@ export function createRoom5(scene) {
             termForm.addEventListener("submit", (e) => {
                 e.preventDefault();
                 const val = termInput.value.trim();
+                if (termInput) termInput.value = "";
                 if (val) { runCommand(val); }
-                termInput.value = "";
-                termInput.focus();
+                if (termInput) termInput.focus(); // exit командын дараа null байж болно
             });
 
             termInput.addEventListener("keydown", (e) => {
